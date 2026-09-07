@@ -1,0 +1,46 @@
+{
+  "title": "Can't Help Falling in Love",
+  "credit": "Elvis Presley",
+  "source": "https://www.youtube.com/watch?v=scR9Pkb5xMc",
+  "score_source": "https://musescore.com/user/103689184/scores/37374032",
+  "score": "cant-help-falling-in-love.mxl",
+  "output": "cant-help-falling-in-love_playalong.mkv",
+  "layout": {
+    "measures_per_row": 4,
+    "countdown_label": "ESPERA",
+    "countdown_min_bars": 2,
+    "tail_seconds": 8.0,
+    "cursor_lag_seconds": -0.48
+  },
+  "align": {
+    "quarter_dur": [
+      0.88236
+    ],
+    "t0": [
+      -1.0,
+      25.0,
+      0.02
+    ],
+    "head_bars": [
+      0
+    ],
+    "transpose": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11
+    ],
+    "stretch": [],
+    "entry_window": null,
+    "lock": null,
+    "offset": 1.25
+  }
+}

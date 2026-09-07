@@ -1,0 +1,60 @@
+{
+  "title": "Reloj",
+  "credit": "Roberto Cantoral",
+  "source": "https://www.youtube.com/watch?v=5z3ddH7JWEc",
+  "score_source": "https://musescore.com/user/103689184/scores/37097696",
+  "score": "reloj.mxl",
+  "output": "reloj_playalong.mkv",
+  "layout": {
+    "measures_per_row": 4,
+    "countdown_label": "GUITARRA",
+    "countdown_min_bars": 2,
+    "tail_seconds": 10.0,
+    "cursor_lag_seconds": 0.0
+  },
+  "align": {
+    "quarter_dur": [
+      0.65,
+      0.7,
+      0.001
+    ],
+    "t0": [
+      -1.0,
+      8.0,
+      0.02
+    ],
+    "head_bars": [
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "transpose": [
+      0
+    ],
+    "stretch": [
+      {
+        "measure": 36,
+        "extra_bars": [
+          0,
+          1,
+          2
+        ]
+      }
+    ],
+    "entry_window": [
+      21.5,
+      24.5
+    ],
+    "lock": {
+      "head_bars": 6,
+      "extra_bars": [
+        1
+      ],
+      "quarter_dur": 0.682,
+      "t0": 1.358,
+      "transpose": 0
+    }
+  }
+}

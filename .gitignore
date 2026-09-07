@@ -1,0 +1,31 @@
+# Everything under build/ is derived from the song's inputs and is rebuilt by
+# `./infra/run.sh <song> fetch align`. Nothing in here is worth a history:
+# the downloaded audio, the extracted MusicXML, the engraved rows, the sync map.
+build/
+
+# The rendered video. One filename per song, overwritten on every render --
+# exactly the kind of large binary that git is worst at storing.
+*_playalong.mkv
+
+__pycache__/
+*.pyc
+
+# reloj's media: the source video, a re-encode of it, and the backing audio.
+# All three are downloads, not inputs -- song.json names the recording they come
+# from. The source is the play-along already published on the author's own
+# channel -- the one URL nobody else can take down -- and its audio is the same
+# backing track from the same first sample (verified: zero lag), followed by the
+# silence the render appends. Keeping these would be 18 MB of history for files
+# that a URL already describes.
+reloj/reloj_video_hd.webm
+reloj/reloj_video_small.mp4
+reloj/reloj_backing.webm
+
+# The photo of the sheet reloj was transcribed from. A reference, not an input:
+# the notes it holds are in reloj.mxl, and nothing here reads the image.
+reloj/partitura_original.png
+
+# MuseScore's own project file. The pipeline reads only the .mxl, and the
+# editable score lives in MuseScore's cloud -- see score_source in song.json.
+# Keeping a second copy here would be the mirror this repo deliberately avoids.
+reloj/reloj.mscz
