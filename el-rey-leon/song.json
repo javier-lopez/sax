@@ -1,0 +1,91 @@
+{
+  "title": "El Círculo de la Vida",
+  "credit": "Elton John",
+  "instrument": "YDS-120: S11 (soprano, si bemol)",
+  "source": "https://www.youtube.com/watch?v=YgKbn4GM6UA",
+  "score_source": "https://musescore.com/user/103689184/scores/35605193",
+  "score": "el-rey-leon.mxl",
+  "output": "el-rey-leon_playalong.mkv",
+  "layout": {
+    "measures_per_row": 4,
+    "countdown_label": "ESPERA",
+    "countdown_min_bars": 2,
+    "tail_seconds": 10.0,
+    "cursor_lag_seconds": -0.28
+  },
+  "align": {
+    "_tempo": "measured, not swept: a linear fit through the beat tracker's beats gives 0.7147s (83.95 bpm) in both halves of the song. The harmony search picked 0.7226 from a flat surface and drifted ~1s by m50.",
+    "quarter_dur": [
+      0.7147
+    ],
+    "t0": [
+      -4.0,
+      30.0,
+      0.02
+    ],
+    "head_bars": [
+      0
+    ],
+    "transpose": [
+      10
+    ],
+    "stretch": [],
+    "offset": 1.18,
+    "anchors": [],
+    "entry_window": null,
+    "lock": null,
+    "_transpose": "written for a B-flat soprano: written C sounds B-flat. Only the aligner's chroma is shifted; the score is displayed as written."
+  },
+  "loudness": {
+    "target": -14.0,
+    "peak": -2.0,
+    "rest_boost_db": 1.5,
+    "ramp_bars": 2,
+    "sections": [
+      {
+        "from_measure": 1,
+        "to_measure": 18,
+        "db": -1.5,
+        "flatten": true,
+        "to_db": 3.0
+      },
+      {
+        "from_measure": 19,
+        "to_measure": 34,
+        "db": 7.0
+      },
+      {
+        "from_measure": 35,
+        "to_measure": 50,
+        "db": 10.5,
+        "flatten": true
+      },
+      {
+        "from_measure": 51,
+        "to_measure": 66,
+        "db": 5.5,
+        "enter_bars": 8
+      },
+      {
+        "from_measure": 67,
+        "to_measure": 74,
+        "db": 14.0,
+        "enter_bars": 0
+      },
+      {
+        "from_measure": 75,
+        "to_measure": 82,
+        "db": 0.0,
+        "flatten": true
+      }
+    ],
+    "crescendo": {
+      "from_measure": 75,
+      "db": 1.0,
+      "ramp_bars": 4
+    },
+    "ending": {
+      "fade_s": 1.5
+    }
+  }
+}
