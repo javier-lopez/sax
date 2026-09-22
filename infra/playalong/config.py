@@ -19,6 +19,8 @@ DEFAULT_LAYOUT = {
     # the player's own constant, settled by ear, not a property of the song.
     "cursor_lag_seconds": -0.48,
     "tail_seconds": 10.0,
+    # how long the instrument card covers the opening, before any note is due
+    "intro_seconds": 8.0,
 }
 
 DEFAULT_ALIGN = {
@@ -49,11 +51,17 @@ class Song:
         self.build = os.path.join(root, "build")
         self.title = data.get("title") or os.path.basename(root)
         self.credit = data.get("credit", "")
+        # the horn and voice the score is written for: a reader who grabs the
+        # wrong one is off by a transposition before the first note
+        self.instrument = data.get("instrument", "")
         self.source = data.get("source")
         # a local recording, for a song whose source is not a URL: the file is
         # then an input rather than a download, and build/ stays disposable
         self.audio_in = (os.path.join(root, data["audio"])
                          if data.get("audio") else None)
+        # Opt-in: the recording ships untouched unless the song asks for its
+        # loudness to be evened out -- see mix.level
+        self.loudness = data.get("loudness")
         self.score_file = os.path.join(root, data["score"])
         self.output = os.path.join(root, data.get("output", "playalong.mkv"))
         self.layout = {**DEFAULT_LAYOUT, **data.get("layout", {})}
@@ -115,17 +123,18 @@ def scaffold(song_dir, score_name, url, title, credit, declared_bpm):
         "score": score_name,
         "output": f"{os.path.basename(song_dir)}_playalong.mkv",
         "layout": {"measures_per_row": 4, "countdown_label": "ESPERA",
-                   "countdown_min_bars": 2, "tail_seconds": 8.0},
+                   "countdown_min_bars": 2,
+                   "tail_seconds": DEFAULT_LAYOUT["tail_seconds"]},
         "align": {"_tempo": SCAFFOLD_NOTE,
                   "quarter_dur": sweep,
                   "t0": [-1.0, 30.0, 0.02],
                   "head_bars": [0],
+                  # a new song's key is unknown, so sweep all twelve; a settled
+                  # song pins the winner and the default drops back to [0]
                   "transpose": list(range(12)),
                   "stretch": [],
                   "offset": 0.0,
-    # [[measure, seconds], ...] -- a per-measure offset curve for a performance
-    # that does not hold a steady tempo; overrides the flat "offset" when present
-    "anchors": [],
+                  "anchors": [],
                   "entry_window": None,
                   "lock": None},
     }

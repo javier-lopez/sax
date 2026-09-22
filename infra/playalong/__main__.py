@@ -1,24 +1,28 @@
 """Stage runner: python -m playalong <song-dir> [stage ...]
 
 Stages, in order, each reusing what the previous one left in <song>/build:
+  scaffold write song.json from the score's own metronome mark
   fetch    download the recording and decode an analysis wav
   align    fit the score onto the recording -> sync_map.json
   preview  a handful of stills, to check the alignment by eye
-  clip F T seconds F..T only, to build/clip.mkv -- the fast loop for
-           settling align.offset by ear
+  clip F T seconds F..T only -- the fast loop for settling align.offset by ear
+  render   the whole piece
+
+Both clip and render write the song's one `output` file, never a second name.
 
 `offset=<seconds>` anywhere in the arguments writes that value into song.json
 before running, so tuning by ear is one command per try:
 
   <song> align clip 8 30 offset=0.6
-  render   the full video
-`all` is fetch + align + render.
+
+`offset=<measure>:<seconds>` instead appends to align.anchors, for a take whose
+tempo moves. `all` is fetch + align + render.
 """
 
 import os
 import sys
 
-from . import align, audio, config, render
+from . import align, audio, config, mix, render
 from .score import Score, build_row_score, extract
 
 STAGES = ("fetch", "align", "preview", "clip", "render")
@@ -98,7 +102,11 @@ def main(argv):
         if {"render", "clip"} & set(stages):
             if src is None:
                 src = audio.local_or_fetch(song)
-            render.render_video(song, score, sync, src, audio.duration(src),
+            mux = src
+            if song.loudness:
+                mux = mix.level(src, os.path.join(song.build, "levelled.opus"),
+                                song, score, sync, song.layout["tail_seconds"])
+            render.render_video(song, score, sync, mux, audio.duration(src),
                                 span=tuple(span) if "clip" in stages else None)
     return 0
 

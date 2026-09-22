@@ -1,4 +1,4 @@
-"""MusicXML: unpack, parse, and re-break into fixed-width rows.
+"""MusicXML: unpack, parse, and re-break into rows.
 
 The four alignment experiments in the original reloj/ each carried their own
 copy of this parser. It is the one piece every stage needs, so it lives here
@@ -47,7 +47,15 @@ class Score:
         self.notes = []           # (onset_q, dur_q, midi or None for a rest)
         self.measures = []        # (number, onset_q)
         self.beats_per_measure = 4.0
-        for m in part.findall("measure"):
+        self.multirests = {}      # measure index -> bars the rest spans
+        # measures whose downbeat attacks a note of a half or longer -- the
+        # held note is where the eye has time to jump to the next row
+        self.long_downbeats = set()
+        for i, m in enumerate(part.findall("measure")):
+            span = m.findtext("attributes/measure-style/multiple-rest")
+            if span:
+                self.multirests[i] = int(span)
+            first = True
             d = m.findtext("attributes/divisions")
             if d:
                 divisions = int(d)
@@ -62,6 +70,13 @@ class Score:
                     if el.find("grace") is not None or el.find("chord") is not None:
                         continue
                     dur = int(el.findtext("duration")) / divisions
+                    if first:
+                        first = False
+                        tied_in = any(t.get("type") == "stop"
+                                      for t in el.findall("tie"))
+                        if (el.find("rest") is None and not tied_in
+                                and dur >= 2.0):
+                            self.long_downbeats.add(i)
                     if el.find("rest") is not None:
                         self.notes.append((q, dur, None))
                     else:
@@ -103,6 +118,58 @@ class Score:
             return self.q_total
         return self.measures[number_index][1]
 
+    def rows(self, measures_per_row):
+        """Row plan as (first, end) measure indices, end exclusive.
+
+        A multi-measure rest is one row of its own, however long: verovio lays
+        it out as a single element and drops any break encoded inside it, and
+        one "wait 18" block reads better than the same wait chopped into rows.
+
+        Between rests, rows are measures_per_row wide but may give or take one
+        measure to keep a held note off the start of a row. The eye has to jump
+        to the next row somewhere, and the only moment it can afford to is
+        while a long note sounds -- so a row should end on that note, not open
+        with it and leave the jump for the busy measure after.
+        """
+        rows, i = [], 0
+        rests = sorted(self.multirests)
+        while i < self.n_measures:
+            if i in self.multirests:
+                end = min(i + self.multirests[i], self.n_measures)
+                rows.append((i, end))
+            else:
+                end = min([k for k in rests if k > i] + [self.n_measures])
+                rows += self._plan_segment(i, end, measures_per_row)
+            i = end
+        return rows
+
+    def _plan_segment(self, start, end, width):
+        """Cheapest split of [start, end) into rows, by dynamic programming.
+
+        Costs: 1 for each row off the nominal width, 3 for a row that opens on
+        a held note, and a 0.5 credit for one that closes on one. A row wider
+        or narrower than the rest is worth it for one clean page turn, never
+        for nothing."""
+        OFF_WIDTH, BAD_START, GOOD_END = 1.0, 3.0, 0.5
+        best = {end: (0.0, [])}
+        for i in range(end - 1, start - 1, -1):
+            options = []
+            for n in (width, width - 1, width + 1, *range(1, width - 1)):
+                j = i + n
+                if n < 1 or j > end or j not in best:
+                    continue
+                if n < width - 1 and j != end:
+                    continue    # a stub row only as the segment's remainder
+                cost = best[j][0] + (0.0 if n == width else OFF_WIDTH)
+                if i != start and i in self.long_downbeats:
+                    cost += BAD_START
+                if j != end and (j - 1) in self.long_downbeats:
+                    cost -= GOOD_END
+                options.append((cost, [(i, j)] + best[j][1]))
+            if options:
+                best[i] = min(options, key=lambda o: o[0])
+        return best[start][1]
+
     def harmony_template(self):
         """One 12-bin chroma column per quarter: melody pitch class plus its
         fifth, held for the note's duration. Rest quarters stay all-zero and
@@ -134,7 +201,7 @@ class Score:
 
 
 def build_row_score(src_xml, dest_xml, measures_per_row):
-    """Force one system per row by encoding a page break every N measures.
+    """Force one system per row by encoding a page break at every row start.
 
     Verovio honours encoded breaks with one page per system; the renderer then
     rasterises each page as an independent strip. MuseScore's own line breaks
@@ -142,7 +209,8 @@ def build_row_score(src_xml, dest_xml, measures_per_row):
     """
     tree = ET.parse(src_xml)
     part = tree.getroot().find("part")
-    for m in part.findall("measure"):
+    starts = {r[0] for r in Score(src_xml).rows(measures_per_row)}
+    for i, m in enumerate(part.findall("measure")):
         for d in [d for d in m.findall("direction")
                   if d.find("direction-type/metronome") is not None]:
             # verovio emits the beat-unit as a music-font text glyph, which the
@@ -151,8 +219,7 @@ def build_row_score(src_xml, dest_xml, measures_per_row):
         for pr in m.findall("print"):
             pr.attrib.pop("new-system", None)
             pr.attrib.pop("new-page", None)
-        num = int(m.get("number"))
-        if num > 1 and (num - 1) % measures_per_row == 0:
+        if i > 0 and i in starts:
             pr = m.find("print")
             if pr is None:
                 pr = ET.Element("print")

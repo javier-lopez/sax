@@ -3,6 +3,9 @@
 Two representations of the same recording: the original compressed stream,
 muxed into the video untouched, and a 22 kHz mono wav that the aligner reads.
 Decoding once up front keeps librosa off the network.
+
+A song may opt into a third: a levelled copy (see mix.py), which then takes
+the original's place in the video.
 """
 
 import glob
@@ -73,3 +76,4 @@ def duration(path):
          "-of", "json", path],
         check=True, capture_output=True, text=True).stdout
     return float(json.loads(out)["format"]["duration"])
+

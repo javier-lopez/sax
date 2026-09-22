@@ -1,10 +1,11 @@
 """Karaoke-style play-along video: two score rows and a sweeping cursor.
 
 The reading model is the one every karaoke screen uses and no page-turning
-score viewer does: the eye never has to jump. Two 4-measure strips are on
-screen at once; when the cursor leaves a row, that slot is refilled with the
-row *after* the next one, so the row you are about to play was already there
-and static while you played the previous one.
+score viewer does: the eye never has to jump. Two strips are on screen at
+once; when the cursor leaves a row, that slot is refilled with the row *after*
+the next one, so the row you are about to play was already there and static
+while you played the previous one. Rows are as wide as Score.rows made them,
+which is not a fixed measure count.
 
 The cursor sweeps continuously rather than hopping note to note, because a
 hop tells you where you are and a sweep tells you where you are going.
@@ -12,7 +13,6 @@ hop tells you where you are and a sweep tells you where you are going.
 
 import io
 import json
-import math
 import os
 import re
 import shutil
@@ -29,6 +29,15 @@ HEADER_H = 150
 SLOT_GAP = 40
 # how long the cursor may spend running into a row before its first note
 ROW_RUN_IN = 0.6
+# between the countdown's label and its number
+COUNT_GAP = 40
+# The header's left stack: title, then the credit, then the instrument. The two
+# gaps are set independently because they are not the same gap: the instrument
+# is a separate fact from the credit, and a single leading that opens both at
+# once leaves it closer to the credit than the credit is to the title, which
+# reads as one block rather than two. Measured ink to ink, not baseline to
+# baseline -- the title is 44px and the grey lines 30px, so baselines lie.
+TITLE_Y, SUB_Y, SUB_STEP = 26, 82, 44
 BOTTOM_MARGIN = 40
 
 
@@ -193,6 +202,16 @@ def _render_strips(rows_xml, n_rows, width):
         # a solid bar spanning the measure, which is what a player reads as
         # "wait this many bars"; the default glyph form draws a stub
         "multiRestStyle": "block",
+        # MuseScore's own face, so the video reads like the editor the scores
+        # are written in
+        "font": "Leland",
+        # verovio's default ties between adjacent notes are hairline cups that
+        # vanish at reading distance; these read as arcs
+        "tieMidpointThickness": 0.9,
+        "tieEndpointThickness": 0.2,
+        "tieMinLength": 3.5,
+        "slurMidpointThickness": 0.9,
+        "slurEndpointThickness": 0.2,
     })
     if not tk.loadFile(rows_xml):
         raise RuntimeError(f"verovio failed to load {rows_xml}")
@@ -222,9 +241,9 @@ class Renderer:
         self.song, self.score, self.log = song, score, log
         lay = song.layout
         self.W, self.H, self.fps = lay["width"], lay["height"], lay["fps"]
-        self.mpr = lay["measures_per_row"]
         self.cursor_lag = lay["cursor_lag_seconds"]
-        self.n_rows = math.ceil(score.n_measures / self.mpr)
+        self.row_span = score.rows(lay["measures_per_row"])
+        self.n_rows = len(self.row_span)
 
         knots = sync["knots"]
         self.kq = [k[0] for k in knots]
@@ -258,6 +277,7 @@ class Renderer:
 
         f = ImageFont.truetype
         self.f_big, self.f_mid, self.f_sml = f(FONT_BOLD, 150), f(FONT_BOLD, 44), f(FONT_BOLD, 30)
+        self.f_end = f(FONT_BOLD, 120)
 
     def q_to_t(self, q):
         return float(np.interp(q, self.kq, self.kt))
@@ -289,7 +309,7 @@ class Renderer:
         # would hide the note itself.
         self.last_row = max(r for r in range(self.n_rows) if row_pts[r])
         last_note = self.score.pitched[-1]
-        end_t = self.q_to_t(last_note[0] + last_note[1])
+        end_t = self.end_t = self.q_to_t(last_note[0] + last_note[1])
         bl = _final_barline_x(svgs[self.last_row])
         end_x = (bl * scale + self.x0) if bl else max(x for _, x in row_pts[self.last_row])
 
@@ -307,24 +327,32 @@ class Renderer:
             return float(np.clip(a * t + b, 0.02 * self.W, 0.99 * self.W))
 
         self.rows_t, self.track = [], []
-        for r in range(self.n_rows):
-            t0 = self.q_to_t(self.score.measure_q(r * self.mpr))
-            t1 = self.q_to_t(self.score.measure_q(min((r + 1) * self.mpr,
-                                                      self.score.n_measures)))
+        for r, (first, end) in enumerate(self.row_span):
+            t0 = self.q_to_t(self.score.measure_q(first))
+            t1 = self.q_to_t(self.score.measure_q(end))
             pts_r = sorted(row_pts[r])
             # A row whose first note is on the downbeat gives the cursor nowhere
             # to come from: it materialises already sitting on the note. So the
             # row opens early, at the blank left of the staff, and the bar runs
-            # into the first note. The entry time comes from extending the row's
-            # own line backwards, which keeps the speed continuous -- an entry at
-            # any other rate would read as the cursor lurching.
-            t_in = t0
+            # into the first note at the row's own speed -- an entry at any other
+            # rate would read as the cursor lurching.
+            #
+            # The run-in is measured back from the first note, not from the
+            # row's fitted line. Engraved spacing is not proportional: a dotted
+            # half takes the room of a couple of eighths, so a line fitted
+            # through a row of eighths lands left of the staff at the downbeat
+            # and the run-in collapsed to nothing on every such row.
+            t_in, entry_x = t0, edge(pts_r, t0, x_left)
             if len(pts_r) >= 2:
-                a, b = np.polyfit([p[0] for p in pts_r], [p[1] for p in pts_r], 1)
+                a, _ = np.polyfit([p[0] for p in pts_r], [p[1] for p in pts_r], 1)
                 if a > 0:
-                    t_in = float(np.clip((x_left - b) / a, t0 - ROW_RUN_IN, t0))
+                    t_first, x_first = pts_r[0]
+                    t_in = float(np.clip(t_first - (x_first - x_left) / a,
+                                         t0 - ROW_RUN_IN, t0))
+                    entry_x = float(np.clip(x_first - a * (t_first - t_in),
+                                            0.02 * self.W, x_first))
             self.rows_t.append((t_in, t1))
-            edges = [(t_in, edge(pts_r, t_in, x_left))]
+            edges = [(t_in, entry_x)]
             edges.append((end_t, end_x) if r == self.last_row
                          else (t1, edge(pts_r, t1, x_right)))
             pts = sorted(pts_r + edges)
@@ -387,14 +415,22 @@ class Renderer:
                  (self.W, self.slot_y[1] - SLOT_GAP // 2)],
                 fill=(210, 210, 210), width=2)
 
-        dr.text((40, 40), self.song.title, font=self.f_mid, fill=(40, 40, 40))
-        credit = self.song.credit
-        sub = f"{credit}  ·  {self.bpm:.0f} bpm" if credit else f"{self.bpm:.0f} bpm"
-        dr.text((40, 100), sub, font=self.f_sml, fill=(120, 120, 120))
-        m0 = r * self.mpr + 1
-        m1 = min((r + 1) * self.mpr, self.score.n_measures)
+        # the header stacks what identifies the piece down the left edge and
+        # keeps the right edge for the one thing that changes, so the middle
+        # stays free for the countdown: a single line across the top left the
+        # count nowhere to sit that was both centred and clear of the text
+        dr.text((40, TITLE_Y), self.song.title, font=self.f_mid, fill=(40, 40, 40))
+        sub = ["  ·  ".join(x for x in (self.song.credit,
+                                        f"{self.bpm:.0f} bpm") if x)]
+        if self.song.instrument:
+            sub.append(self.song.instrument)
+        for i, line in enumerate(sub):
+            dr.text((40, SUB_Y + i * SUB_STEP), line, font=self.f_sml,
+                    fill=(120, 120, 120))
+        w_sub = max(dr.textlength(line, font=self.f_sml) for line in sub)
+        m0, m1 = self.row_span[r][0] + 1, self.row_span[r][1]
         label = f"compás {m0}–{m1}" if m1 > m0 else f"compás {m0}"
-        dr.text((self.W - 40 - dr.textlength(label, font=self.f_sml), 55),
+        dr.text((self.W - 40 - dr.textlength(label, font=self.f_sml), 40),
                 label, font=self.f_sml, fill=(120, 120, 120))
 
         ts, xs = self.track[r]
@@ -406,14 +442,60 @@ class Renderer:
 
         for t0, t1, n in self.counts:
             if t0 <= t < t1:
+                # label, bar and number read as one block, so the block is
+                # centred and its pieces measured: pinning each to its own
+                # offset from the centre left a one-digit count sitting off to
+                # the left of a two-digit one
                 lab = self.song.layout["countdown_label"]
-                dr.text((self.W / 2 - 250, 18), lab, font=self.f_mid, fill=RED + (255,))
-                dr.text((self.W / 2 + 90, -10), str(n), font=self.f_big, fill=RED + (255,))
+                num = str(n)
+                w_lab = dr.textlength(lab, font=self.f_mid)
+                w_num = dr.textlength(num, font=self.f_big)
+                block = w_lab + COUNT_GAP + w_num
+                x = (self.W - block) / 2
+                # the number is tall enough to reach both header lines, so it
+                # gives way to them: centred where there is room, nudged off
+                # centre only where a long credit or a long instrument reaches
+                # in
+                left = 40 + w_sub + COUNT_GAP
+                right = (self.W - 40 - dr.textlength(label, font=self.f_sml)
+                         - COUNT_GAP - block)
+                x = min(max(x, left), max(right, left))
+                dr.text((x, 18), lab, font=self.f_mid, fill=RED + (255,))
+                dr.text((x + w_lab + COUNT_GAP, -10), num, font=self.f_big,
+                        fill=RED + (255,))
                 frac = (t - t0) / (t1 - t0)
-                dr.rectangle([self.W / 2 - 250, 80,
-                              self.W / 2 - 250 + 330 * (1 - frac), 96],
+                dr.rectangle([x, 80, x + w_lab * (1 - frac), 96],
                              fill=(230, 30, 30, 130))
+
+        intro = self.song.layout["intro_seconds"]
+        if self.song.instrument and t < intro:
+            # fades over its last second so the staff underneath does not pop in
+            a = min(1.0, intro - t)
+            y0, y1 = self.slot_y[0], self.slot_y[1] + self.strips[0].height
+            dr.rectangle([0, y0, self.W, y1], fill=(255, 255, 255, int(235 * a)))
+            cy = (y0 + y1) / 2
+            w = dr.textlength(self.song.instrument, font=self.f_mid)
+            dr.text(((self.W - w) / 2, cy - 22), self.song.instrument,
+                    font=self.f_mid, fill=RED + (int(255 * a),))
+
+        if t >= self.end_t:
+            self._closing_card(dr, 1 - self.last_row % 2, min(1.0, (t - self.end_t) / 0.5))
         return img
+
+    def _closing_card(self, dr, slot, a):
+        """Fills the slot the last row leaves empty once the final note ends:
+        with no next row to show, a summary reads as an ending rather than a
+        rendering gap."""
+        y0 = self.slot_y[slot]
+        span = self.q_to_t(self.score.q_total) - self.q_to_t(0.0)
+        facts = [f"{self.score.n_measures} compases", f"{self.bpm:.0f} bpm",
+                 f"{int(span // 60)}:{int(span % 60):02d}", self.song.instrument]
+        for text, font, dy, col in (("Fin", self.f_end, 30, (40, 40, 40)),
+                                    ("  ·  ".join(x for x in facts if x),
+                                     self.f_sml, 190, (120, 120, 120))):
+            w = dr.textlength(text, font=font)
+            dr.text(((self.W - w) / 2, y0 + dy), text, font=font,
+                    fill=col + (int(255 * a),))
 
 
 def preview(song, score, sync, times=None, log=print):
