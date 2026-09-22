@@ -6,8 +6,10 @@ For personal backing tracks videos.
 
 Give it a recording on YouTube and a lead sheet in MusicXML and it renders a
 video: two staff rows on screen, a cursor sweeping the one you are playing, and
-a bar countdown over every wait long enough to lose the pulse. The recordings
-carry no melody — that is the point. You play the melody.
+a bar countdown over every wait long enough to lose the pulse. It opens on a
+card naming the horn the chart is written for and closes on one with the
+piece's numbers. The recordings carry no melody — that is the point. You play
+the melody.
 
 ```
 ./infra/run.sh new <dir> <youtube-url> <score.mxl> "Title" "Credit"
@@ -47,9 +49,10 @@ When you want the new notes, you download the `.mxl` and re-render — and the
 download is part of re-rendering, not maintenance you forgot to do.
 
 `song.json` records where each score came from in `score_source`, which is the
-only link that has to stay current.
+only link that has to stay current. No code reads it; it is there so the next
+person can find the master.
 
-## The two knobs
+## The two timing knobs
 
 `align.offset` — where the music is. It has a true value, the same for every
 listener, and it can be measured against the recording's own onsets. See
@@ -57,8 +60,19 @@ listener, and it can be measured against the recording's own onsets. See
 
 `layout.cursor_lag_seconds` — how far ahead of the sound the cursor runs.
 Negative moves it earlier. A cue landing exactly on the beat is already too
-late: by then you should have attacked. This belongs to the player, not to the
-song, and the default (`-0.48`) is already set.
+late: by then you should have attacked. This is the player's lead rather than a
+property of the song, and the default (`-0.48`) already carries it. A song that
+overrides it is recording what was settled by ear on that render;
+`infra/README.md` lists what each one uses.
+
+## Loudness
+
+A backing track is mastered for listening, not for playing over: its quiet intro
+and its loud chorus are right on their own terms and wrong for someone who needs
+the sections they *play* to sit above the ones they count through. A song can
+opt into `loudness` and the pipeline reshapes the levels against the score, so a
+change lands on a barline. Off by default — without it the downloaded stream
+ships untouched. See `infra/README.md`.
 
 ## Requirements
 

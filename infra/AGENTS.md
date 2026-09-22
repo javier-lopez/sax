@@ -35,6 +35,11 @@ human:  approves
 you:    full render
 ```
 
+There are two ear loops, not one, and they run in this order: **timing first,
+then loudness**. Settling `align.offset` needs a clip; judging a level arc needs
+the whole piece, because it is the sections in relation to each other that is
+being judged. Do not open the second loop before the first one closes.
+
 ## Adding a song
 
 One command. It scaffolds, downloads, aligns, and leaves a clip to listen to:
@@ -90,7 +95,10 @@ cursor and the recording genuinely disagree.
 to play to it*. A cue landing exactly on the beat is already too late: by the
 time it arrives the player should have attacked. Negative moves the cursor
 earlier. This is taste, it belongs to the player rather than to the song, and it
-is the only knob left once the offset measures right. On this player, -0.08.
+is the only knob left once the offset measures right. It defaults to -0.48. The
+songs here carry -0.48, -0.28 and 0.0, each settled by ear on its own render;
+`README.md` next to this file tabulates them. Take the human's number for the
+song in front of you and do not average it against another song's.
 
 Getting these backwards is the expensive mistake. Absorbing a player's lead into
 `align.offset` destroys the one number in the file that has an external check,
@@ -157,12 +165,40 @@ rather than proceeding.
    hundredth, the fit is not trustworthy.
 2. **Tempo agreement.** The recovered bpm should land near the score's declared
    metronome mark. Two independent sources agreeing is the strongest evidence
-   available here.
+   available here. Near is not enough on its own: half a percent still
+   correlates well over four bars and becomes a second of drift by the end. If
+   the human reports the cursor slipping *further* out the longer it plays, the
+   offset is not the problem — measure the true tempo, pin `quarter_dur` to a
+   single value, and re-derive the offset against it.
 3. **Notes located.** The render logs `notes located: N/M`. It must be all of
    them; anything less means the cursor is guessing.
 
 The `t0` spread across the top candidates is *expected* to be wide. That is the
 phase ambiguity, not a bug.
+
+## Shaping the loudness
+
+Only when the song sets `loudness`. `infra/README.md` documents the keys; this
+is how to run the loop without burning the human's attention.
+
+**Move in steps of 3 dB or more.** A 1 dB change is inaudible and a 2 dB change
+is arguable. A recorded failure: a round of 0.5-1.5 dB moves came back as "no
+noté la diferencia, no sé qué estás moviendo" — every probe had been spent on a
+change below the threshold of hearing. Bracket the way you bracket the offset:
+overshoot deliberately, because the first reading that comes back "too much" is
+worth more than any number of "still not enough".
+
+**Ask about relations, not absolutes.** YouTube normalises the whole video to
+about -14 LUFS and only ever downward, so the overall level is not yours to set;
+what you control is which section sits above which. "Is the chorus louder than
+the intro?" is answerable. "Is it loud enough?" is not.
+
+**Judge on the whole render.** A clip cannot show an arc. This is the one stage
+where the four-minute render is the cheap option.
+
+**Report what you measured.** Give the per-section integrated LUFS after every
+change. The human hears sections; the numbers tell you whether what they heard
+is what you moved.
 
 ## Dead ends — do not re-derive these
 
@@ -174,6 +210,7 @@ Trying them again costs an hour and reaches the same place.
 | melody pitch tracking (`pyin`) | the melody is absent by design: 1 confident frame in 8142 |
 | onset-envelope correlation, *globally* | aliases onto the accompaniment's subdivision — peaks every ~0.3s on a triplet ballad, and its global maximum pointed the **wrong way** (−0.46s, when the truth was about +0.5s). Constrained to a narrow window around an already-close prediction the same envelope is exact — see "Measuring the offset instead of asking" |
 | per-window harmony offsets | six of eight windows returned ~0.00s with correlations differing in the third decimal: a flat surface, i.e. no answer rather than the answer zero |
+| generic levelling (`dynaudnorm`) for the loudness arc | its smoothing window is centred, so it starts turning down *before* a loud section arrives and up before a quiet one: the end of every verse sagged into the chorus. A leveller that cannot see the barlines cannot land on them — hence the score-driven `mix.py` |
 
 The lesson worth carrying: a global maximum is worthless until you have looked
 at whether it is the *only* maximum.
@@ -183,6 +220,10 @@ at whether it is the *only* maximum.
 - **Never guess `align.offset`.** It comes from the human or it stays 0.
 - **Never start a full render without approval of the offset.** It costs four
   minutes and `run.sh <song>` with no stage means `all`, which includes it.
+- **Never re-level audio the human has already approved.** `build/levelled.opus`
+  is cached against its inputs; a render that only changes the picture must
+  reuse it. Say so before rendering, so they know what they are about to watch
+  is the mix they signed off on.
 - **Never touch a song whose `align.lock` is set.** `reloj` is locked with
   hand-tuned values; re-deriving them is a regression.
 - **Inputs are sacred.** `song.json`, the `.mxl`, and any recording named by
@@ -198,10 +239,12 @@ at whether it is the *only* maximum.
 
 | symptom | cause | fix |
 |---|---|---|
-| `expected N row-pages from verovio, got M` | the score has fewer/more measures than the row layout assumes | check `measures_per_row`; a score whose measure count is not a multiple still works, the last row is short |
+| `expected N row-pages from verovio, got M` | the row plan and the breaks verovio honoured disagree — almost always a multi-measure rest, which verovio lays out as one element and inside which it drops any encoded break | do not touch `measures_per_row`; rows are planned by `Score.rows` and a multirest is deliberately its own row. Check that the `.mxl` really encodes the rest as `multiple-rest` |
 | `no candidate grid fits inside the audio` | tempo sweep too narrow, or the score is longer than the recording | widen `quarter_dur`; confirm the recording is the whole song |
 | cursor visibly wrong, `notes located` below total | verovio SVG changed shape | fix `_note_xy`, do not lower the threshold |
-| `audio was re-encoded` | the muxer failed to stream-copy | do not silence it; the point is that the audio ships untouched |
+| `audio was re-encoded` | the muxer failed to stream-copy | do not silence it; the point is that whatever the render was handed ships whole. With `loudness` set that is `build/levelled.opus`, not the download — the download is re-encoded once, on purpose, and only there |
+| the ending rings on instead of stopping | the leveller hunting for signal in the tail | the gain freezes at the last hit by design; check `ending.fade_s` rather than the section levels |
+| a loudness change is inaudible | it was smaller than 3 dB | do not probe again at the same size; double it |
 | countdown appears where the player is playing | `countdown_min_bars` too low, or the offset is far off | settle the offset first |
 | two `audio.*` files in `build/` | a half-finished fetch | delete both and re-fetch; the muxer must never choose between formats |
 
