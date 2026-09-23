@@ -94,11 +94,23 @@ cursor and the recording genuinely disagree.
 `layout.cursor_lag_seconds` answers *how far ahead the cue must run for a human
 to play to it*. A cue landing exactly on the beat is already too late: by the
 time it arrives the player should have attacked. Negative moves the cursor
-earlier. This is taste, it belongs to the player rather than to the song, and it
+earlier.
+
+It is bounded above as well as below, and agents keep missing the upper bound.
+The cursor is an opaque bar drawn over the staff, so a lead that parks it on the
+notes the player is reading hides them -- "se adelanta" can mean the cue is
+early *or* that the bar is sitting on the next bar of music. Ask which, because
+the fix is the same knob in opposite directions. This is taste, it belongs to the player rather than to the song, and it
 is the only knob left once the offset measures right. It defaults to -0.48. The
-songs here carry -0.48, -0.28 and 0.0, each settled by ear on its own render;
+songs here carry -0.22, -0.28 and +0.35, each settled by ear on its own render;
 `README.md` next to this file tabulates them. Take the human's number for the
 song in front of you and do not average it against another song's.
+
+**A lead on the far side of zero from its siblings is a finding, not a
+preference.** The lead belongs to the player, so the same player's songs should
+cluster. One that does not is absorbing an error in that song's map -- check its
+`align.offset` and, if it is locked, whether the lock predates the current
+renderer. Say so rather than quietly writing the number down.
 
 Getting these backwards is the expensive mistake. Absorbing a player's lead into
 `align.offset` destroys the one number in the file that has an external check,

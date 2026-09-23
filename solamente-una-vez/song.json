@@ -1,0 +1,10 @@
+{
+  "title": "Solamente una vez",
+  "credit": "Agustín Lara",
+  "instrument": "YDS-120: T5 (tenor, si bemol)",
+  "source": "https://www.youtube.com/watch?v=EXq8EqZegsk",
+  "output": "solamente-una-vez_playalong.mkv",
+  "layout": {
+    "tail_seconds": 15.0
+  }
+}

@@ -242,6 +242,7 @@ class Renderer:
         lay = song.layout
         self.W, self.H, self.fps = lay["width"], lay["height"], lay["fps"]
         self.cursor_lag = lay["cursor_lag_seconds"]
+        self.n_slots = max(2, int(lay["rows_on_screen"]))
         self.row_span = score.rows(lay["measures_per_row"])
         self.n_rows = len(self.row_span)
 
@@ -255,10 +256,11 @@ class Renderer:
         strips, svgs, onsets, pages, svg_scale = _render_strips(
             song.rows_xml, self.n_rows, self.W)
 
-        # fit both slots vertically; shrink uniformly if the systems are tall
+        # fit every slot vertically; shrink uniformly if the systems are tall
+        n = self.n_slots
         max_h = max(s.height for s in strips)
         avail = self.H - HEADER_H - BOTTOM_MARGIN
-        fit = min(1.0, (avail - SLOT_GAP) / (2 * max_h))
+        fit = min(1.0, (avail - (n - 1) * SLOT_GAP) / (n * max_h))
         if fit < 1.0:
             strips = [s.resize((int(s.width * fit), int(s.height * fit)),
                                Image.LANCZOS) for s in strips]
@@ -266,9 +268,9 @@ class Renderer:
         self.strips = strips
         self.strip_w = strips[0].width
         self.x0 = (self.W - self.strip_w) // 2
-        block = 2 * max_h + SLOT_GAP
+        block = n * max_h + (n - 1) * SLOT_GAP
         top = HEADER_H + max(0, (avail - block) // 2)
-        self.slot_y = (top, top + max_h + SLOT_GAP)
+        self.slot_y = tuple(top + i * (max_h + SLOT_GAP) for i in range(n))
         self.log(f"{self.n_rows} rows, strip {self.strip_w}x{max_h} "
                  f"(fit {fit:.2f}), slots at y={self.slot_y}")
 
@@ -405,15 +407,19 @@ class Renderer:
             if tc >= t0:
                 r = i
         r = min(r, self.last_row)   # never advance past the note being held
-        cur_slot = r % 2
-        slots = {cur_slot: r}
-        if r + 1 < self.n_rows:
-            slots[1 - cur_slot] = r + 1
+        # the row being played keeps its slot and the ones after it fill the
+        # slots below, wrapping: a slot is only ever rewritten while the eye is
+        # elsewhere, which is what makes the next row already static when the
+        # cursor arrives
+        n = self.n_slots
+        cur_slot = r % n
+        slots = {(cur_slot + k) % n: r + k
+                 for k in range(n) if r + k < self.n_rows}
         for slot, row in slots.items():
             img.paste(self.strips[row], (self.x0, self.slot_y[slot]))
-        dr.line([(0, self.slot_y[1] - SLOT_GAP // 2),
-                 (self.W, self.slot_y[1] - SLOT_GAP // 2)],
-                fill=(210, 210, 210), width=2)
+        for y in self.slot_y[1:]:
+            dr.line([(0, y - SLOT_GAP // 2), (self.W, y - SLOT_GAP // 2)],
+                    fill=(210, 210, 210), width=2)
 
         # the header stacks what identifies the piece down the left edge and
         # keeps the right edge for the one thing that changes, so the middle
@@ -471,7 +477,7 @@ class Renderer:
         if self.song.instrument and t < intro:
             # fades over its last second so the staff underneath does not pop in
             a = min(1.0, intro - t)
-            y0, y1 = self.slot_y[0], self.slot_y[1] + self.strips[0].height
+            y0, y1 = self.slot_y[0], self.slot_y[-1] + self.strips[0].height
             dr.rectangle([0, y0, self.W, y1], fill=(255, 255, 255, int(235 * a)))
             cy = (y0 + y1) / 2
             w = dr.textlength(self.song.instrument, font=self.f_mid)
@@ -479,7 +485,8 @@ class Renderer:
                     font=self.f_mid, fill=RED + (int(255 * a),))
 
         if t >= self.end_t:
-            self._closing_card(dr, 1 - self.last_row % 2, min(1.0, (t - self.end_t) / 0.5))
+            self._closing_card(dr, (self.last_row + 1) % self.n_slots,
+                               min(1.0, (t - self.end_t) / 0.5))
         return img
 
     def _closing_card(self, dr, slot, a):
@@ -519,6 +526,72 @@ def preview(song, score, sync, times=None, log=print):
         out.append(path)
     log(f"{len(out)} preview stills in {song.preview_dir}")
     return out
+
+
+def _probe_video(path):
+    out = subprocess.run(
+        ["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries",
+         "stream=width,height,r_frame_rate", "-of", "json", path],
+        check=True, capture_output=True, text=True).stdout
+    st = json.loads(out)["streams"][0]
+    num, den = st["r_frame_rate"].split("/")
+    return st["width"], st["height"], float(num) / float(den)
+
+
+def passthrough(song, src, dest, log=print):
+    """A song whose video is already finished: add the card and the tail.
+
+    Some backing tracks are published as play-alongs already -- staff, cursor
+    and audio in one file. Re-engraving one would replace a reading that works
+    with a worse one, so the only things missing are what every song here
+    carries anyway: the horn named up front, and silence at the end so the
+    video can sit in a playlist without the next one clipping its ending.
+    """
+    w, h, fps = _probe_video(src)
+    intro = song.layout["intro_seconds"] if song.instrument else 0.0
+    tail = song.layout["tail_seconds"]
+    chain = []
+    inputs = ["-i", src]
+
+    if intro > 0:
+        card = Image.new("RGBA", (w, h), (255, 255, 255, 235))
+        dr = ImageDraw.Draw(card)
+        # the name sets its own size: one that fits a soprano's long label would
+        # leave a short one lost in the middle of a 1080p frame
+        size = max(20, int(h * 0.06))
+        while size > 20:
+            font = ImageFont.truetype(FONT_BOLD, size)
+            if dr.textlength(song.instrument, font=font) <= 0.8 * w:
+                break
+            size -= 2
+        tw = dr.textlength(song.instrument, font=font)
+        dr.text(((w - tw) / 2, (h - size) / 2), song.instrument,
+                font=font, fill=RED + (255,))
+        card_path = os.path.join(song.build, "card.png")
+        card.save(card_path)
+        inputs += ["-loop", "1", "-framerate", f"{fps:.4f}", "-t", str(intro),
+                   "-i", card_path]
+        fade = min(1.0, intro / 2)
+        chain += [f"[1:v]format=rgba,fade=out:st={intro - fade:.2f}"
+                  f":d={fade:.2f}:alpha=1[c]",
+                  # pass, not the default repeat: once the card's single frame
+                  # runs out the source has to show through untouched
+                  "[0:v][c]overlay=0:0:eof_action=pass[o]"]
+    src_v = "[o]" if intro > 0 else "[0:v]"
+    chain += [f"{src_v}tpad=stop_mode=clone:stop_duration={tail}[v]",
+              f"[0:a]apad=pad_dur={tail}[a]"]
+
+    if os.path.exists(dest):
+        os.remove(dest)             # iterate in place, never accumulate
+    log(f"{w}x{h} at {fps:.2f} fps; card {intro:.0f}s, tail {tail:.0f}s")
+    subprocess.run(
+        ["ffmpeg", "-y", "-v", "error", *inputs,
+         "-filter_complex", ";".join(chain), "-map", "[v]", "-map", "[a]",
+         "-c:v", "libx264", "-preset", "medium", "-crf", "18",
+         "-pix_fmt", "yuv420p", "-c:a", "libopus", "-b:a", "192k", dest],
+        check=True)
+    log(f"wrote {dest} ({os.path.getsize(dest) / 1e6:.1f} MB)")
+    return dest
 
 
 def render_video(song, score, sync, audio_path, audio_len, log=print,

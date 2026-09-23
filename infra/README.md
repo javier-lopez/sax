@@ -317,9 +317,24 @@ settled by ear on a different render.
 
 | song | `cursor_lag_seconds` |
 |---|---|
-| `cant-help-falling-in-love` | -0.48 |
+| `cant-help-falling-in-love` | -0.22 |
 | `el-rey-leon` | -0.28 |
-| `reloj` | 0.0 |
+| `reloj` | **+0.35** |
+
+The lead is bounded on both sides, and the upper bound is the one that
+surprises: the cursor is an opaque bar drawn over the staff, so a lead large
+enough to park it on the notes being read hides them. Too little and the cue
+arrives after the moment to attack; too much and it covers the music.
+
+`reloj` is the number to notice. The same player settled the other two around
+-0.25 and this one at **+0.35** -- not a little different, but on the other side
+of zero, with the bar reaching each note *after* it sounds. A lead is the
+player's own constant, so one song sitting across zero from the rest is not
+taste changing: it says that song's map is off by about that much, and the lead
+is absorbing it. `reloj` is locked with values hand-tuned against an older
+renderer and carries no `align.offset` of its own, which is where to look. The
+video is right either way -- the player judged it -- but the next person should
+know the number is doing two jobs.
 
 A row's cursor starts at the row's left edge and runs in to the first note, so
 it is already moving when the note arrives — it does not materialise on top of

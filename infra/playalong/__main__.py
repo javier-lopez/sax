@@ -10,6 +10,10 @@ Stages, in order, each reusing what the previous one left in <song>/build:
 
 Both clip and render write the song's one `output` file, never a second name.
 
+A song.json with no `score` names a video that is already a play-along: it is
+fetched and re-wrapped with the instrument card and the tail, and align,
+preview and clip do not apply to it.
+
 `offset=<seconds>` anywhere in the arguments writes that value into song.json
 before running, so tuning by ear is one command per try:
 
@@ -72,11 +76,28 @@ def main(argv):
     span = [float(a) for a in argv_rest if _is_num(a)]
     stages = [a for a in argv_rest if not _is_num(a)] or ["all"]
     if "all" in stages:
-        stages = ["fetch", "align", "render"]
+        # a song that is only passed through has nothing to align, so the
+        # default run must not name a stage its own config rules out
+        stages = ["fetch", "render"] if not song.engraves else [
+            "fetch", "align", "render"]
     bad = [s for s in stages if s not in STAGES]
     if bad:
         print(f"unknown stage(s): {bad}; pick from {STAGES} or 'all'")
         return 2
+
+    if not song.engraves:
+        # nothing to engrave, so nothing to align or preview either
+        refused = [x for x in stages if x in ("align", "preview", "clip")]
+        if refused:
+            print(f"{argv[1]} has no score, so {refused} do not apply; "
+                  "it is passed through, not built")
+            return 2
+        src = audio.fetch_video(song.source, song.build,
+                                cookies=song.cookies)
+        print(f"video: {src} ({audio.duration(src):.1f}s)")
+        if "render" in stages:
+            render.passthrough(song, src, song.output)
+        return 0
 
     score = _prepare(song)
     src = None

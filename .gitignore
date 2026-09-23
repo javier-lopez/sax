@@ -29,3 +29,8 @@ reloj/partitura_original.png
 # editable score lives in MuseScore's cloud -- see score_source in song.json.
 # Keeping a second copy here would be the mirror this repo deliberately avoids.
 reloj/reloj.mscz
+
+# The signed-in YouTube session, for videos the site will not serve anonymously.
+# It belongs to the machine, not to the repo, and it is worth as much as the
+# account password -- anyone holding it is signed in as you. Never commit it.
+cookies.txt

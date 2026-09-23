@@ -1,0 +1,41 @@
+{
+  "title": "How Deep Is Your Love",
+  "credit": "Bee Gees",
+  "instrument": "YDS-120: A15 (alto, mi bemol)",
+  "source": "https://www.youtube.com/watch?v=w7YxvVvXLuo",
+  "score_source": "",
+  "score": "how-deep-is-your-love.mxl",
+  "output": "how-deep-is-your-love_playalong.mkv",
+  "layout": {
+    "measures_per_row": 4,
+    "countdown_label": "ESPERA",
+    "countdown_min_bars": 2,
+    "tail_seconds": 10.0,
+    "cursor_lag_seconds": -0.22
+  },
+  "align": {
+    "_tempo": "narrowed to +-3% of the score's 91 bpm: a 97 bpm family tied in the third decimal and would enter 9s late",
+    "quarter_dur": [
+      0.64,
+      0.68,
+      0.001
+    ],
+    "t0": [
+      -1.0,
+      30.0,
+      0.02
+    ],
+    "head_bars": [
+      0
+    ],
+    "transpose": [
+      3
+    ],
+    "stretch": [],
+    "offset": 1.35,
+    "anchors": [],
+    "entry_window": null,
+    "lock": null,
+    "_transpose": "alto in E flat: written sounds 3 semitones up; the sweep put +8 ahead by 0.002, which is noise"
+  }
+}

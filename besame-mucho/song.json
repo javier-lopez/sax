@@ -1,0 +1,10 @@
+{
+  "title": "Besame mucho",
+  "credit": "Consuelo Velázquez",
+  "instrument": "YDS-120: A15 (alto, mi bemol)",
+  "source": "https://www.youtube.com/watch?v=uTOl7xMljHk",
+  "output": "besame-mucho_playalong.mkv",
+  "layout": {
+    "tail_seconds": 15.0
+  }
+}

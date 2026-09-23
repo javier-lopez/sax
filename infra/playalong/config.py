@@ -12,6 +12,12 @@ DEFAULT_LAYOUT = {
     "height": 1080,
     "fps": 30,
     "measures_per_row": 4,
+    # How many staff rows share the screen. Two is the reading model: you play
+    # one while the next sits still. A dense chart at speed empties a row faster
+    # than the eye can refill, and a third row buys that time without squeezing
+    # more measures into the same width, which is the other way to buy it and
+    # costs note size.
+    "rows_on_screen": 2,
     "countdown_label": "ESPERA",
     "countdown_min_bars": 2,
     # Negative runs the cursor ahead of the sound. A cue landing exactly on the
@@ -62,10 +68,31 @@ class Song:
         # Opt-in: the recording ships untouched unless the song asks for its
         # loudness to be evened out -- see mix.level
         self.loudness = data.get("loudness")
-        self.score_file = os.path.join(root, data["score"])
+        # Optional: a song whose video already exists -- score, cursor and all --
+        # is only passed through, so there is nothing to engrave or align. It
+        # still gets the instrument card and the tail every other song gets.
+        self.score_file = (os.path.join(root, data["score"])
+                           if data.get("score") else None)
         self.output = os.path.join(root, data.get("output", "playalong.mkv"))
         self.layout = {**DEFAULT_LAYOUT, **data.get("layout", {})}
         self.align = {**DEFAULT_ALIGN, **data.get("align", {})}
+
+    @property
+    def cookies(self):
+        """A cookies.txt beside the song directories, when one is there.
+
+        YouTube serves some videos only to a signed-in session and the pipeline
+        has none of its own. The file belongs to the machine rather than to any
+        song, so it sits at the repo root instead of in a song.json -- and it is
+        worth as much as the account password, which is why .gitignore names it.
+        """
+        path = os.path.join(os.path.dirname(self.root), "cookies.txt")
+        return path if os.path.exists(path) else None
+
+    @property
+    def engraves(self):
+        """False for a song the pipeline only re-wraps; see score_file."""
+        return self.score_file is not None
 
     # derived paths, all under build/ so the song dir stays inputs + outputs
     @property
