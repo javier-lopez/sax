@@ -25,6 +25,11 @@ DEFAULT_LAYOUT = {
     # the player's own constant, settled by ear, not a property of the song.
     "cursor_lag_seconds": -0.48,
     "tail_seconds": 10.0,
+    # Silence held BEFORE the first note, for a song that is only passed
+    # through. An engraved song gets its lead from the countdown, which is
+    # measured in bars of its own tempo; a finished video has no countdown to
+    # stretch, so the card would otherwise sit on top of the first phrase.
+    "lead_seconds": 0.0,
     # how long the instrument card covers the opening, before any note is due
     "intro_seconds": 8.0,
 }

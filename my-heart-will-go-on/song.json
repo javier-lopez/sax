@@ -1,0 +1,10 @@
+{
+  "title": "My Heart Will Go On",
+  "credit": "Céline Dion",
+  "instrument": "YDS-120: A15 (alto, mi bemol)",
+  "source": "https://www.youtube.com/watch?v=Is9WSPzUn3M",
+  "output": "my-heart-will-go-on_playalong.mkv",
+  "layout": {
+    "tail_seconds": 13.0
+  }
+}

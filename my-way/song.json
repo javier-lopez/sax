@@ -1,0 +1,11 @@
+{
+  "title": "My Way",
+  "credit": "Frank Sinatra",
+  "instrument": "YDS-120: T4 (tenor, si bemol)",
+  "source": "https://www.youtube.com/watch?v=MyAuIbl0R1w",
+  "output": "my-way_playalong.mkv",
+  "layout": {
+    "lead_seconds": 10.0,
+    "tail_seconds": 0.0
+  }
+}

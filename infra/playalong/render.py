@@ -539,19 +539,31 @@ def _probe_video(path):
 
 
 def passthrough(song, src, dest, log=print):
-    """A song whose video is already finished: add the card and the tail.
+    """A song whose video is already finished: add the card and the silence.
 
     Some backing tracks are published as play-alongs already -- staff, cursor
     and audio in one file. Re-engraving one would replace a reading that works
     with a worse one, so the only things missing are what every song here
-    carries anyway: the horn named up front, and silence at the end so the
-    video can sit in a playlist without the next one clipping its ending.
+    carries anyway: the horn named up front, silence at the end so the video
+    can sit in a playlist without the next one clipping its ending, and, for a
+    track that opens straight onto the tune, silence at the front to stand in
+    for the countdown an engraved song would have had.
     """
     w, h, fps = _probe_video(src)
     intro = song.layout["intro_seconds"] if song.instrument else 0.0
+    lead = song.layout["lead_seconds"]
     tail = song.layout["tail_seconds"]
-    chain = []
+    # Both pads go on before the card does, so that the card covers the added
+    # silence rather than the first phrase -- which is the whole reason a
+    # passed-through song wants a lead at all. A frozen first frame reads as
+    # "not started yet"; the same frame under a red label reads as an opening
+    # title, which is what it is.
     inputs = ["-i", src]
+    chain = [f"[0:v]tpad=start_mode=clone:start_duration={lead:.3f}"
+             f":stop_mode=clone:stop_duration={tail:.3f}[p]",
+             f"[0:a]adelay={round(lead * 1000)}:all=1,"
+             f"apad=pad_dur={tail:.3f}[a]"]
+    vlabel = "[p]"
 
     if intro > 0:
         card = Image.new("RGBA", (w, h), (255, 255, 255, 235))
@@ -576,17 +588,16 @@ def passthrough(song, src, dest, log=print):
                   f":d={fade:.2f}:alpha=1[c]",
                   # pass, not the default repeat: once the card's single frame
                   # runs out the source has to show through untouched
-                  "[0:v][c]overlay=0:0:eof_action=pass[o]"]
-    src_v = "[o]" if intro > 0 else "[0:v]"
-    chain += [f"{src_v}tpad=stop_mode=clone:stop_duration={tail}[v]",
-              f"[0:a]apad=pad_dur={tail}[a]"]
+                  "[p][c]overlay=0:0:eof_action=pass[v]"]
+        vlabel = "[v]"
 
     if os.path.exists(dest):
         os.remove(dest)             # iterate in place, never accumulate
-    log(f"{w}x{h} at {fps:.2f} fps; card {intro:.0f}s, tail {tail:.0f}s")
+    log(f"{w}x{h} at {fps:.2f} fps; lead {lead:.0f}s, card {intro:.0f}s, "
+        f"tail {tail:.0f}s")
     subprocess.run(
         ["ffmpeg", "-y", "-v", "error", *inputs,
-         "-filter_complex", ";".join(chain), "-map", "[v]", "-map", "[a]",
+         "-filter_complex", ";".join(chain), "-map", vlabel, "-map", "[a]",
          "-c:v", "libx264", "-preset", "medium", "-crf", "18",
          "-pix_fmt", "yuv420p", "-c:a", "libopus", "-b:a", "192k", dest],
         check=True)

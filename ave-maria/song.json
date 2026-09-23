@@ -1,0 +1,11 @@
+{
+  "title": "Ave María",
+  "credit": "Bach · Gounod",
+  "instrument": "YDS-120: A14 (alto, mi bemol)",
+  "source": "https://www.youtube.com/watch?v=9_-gw2qf1F0",
+  "output": "ave-maria_playalong.mkv",
+  "layout": {
+    "lead_seconds": 10.0,
+    "tail_seconds": 13.5
+  }
+}

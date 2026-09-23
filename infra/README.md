@@ -86,7 +86,7 @@ scaffold leaves an `_tempo` note explaining the sweep it chose.
 | `source` | the YouTube URL `fetch` downloads |
 | `audio` | a recording already in the song directory, used *instead* of `source`. Then it is an input, not a download, and belongs beside the score rather than in `build/`. No song here uses it |
 | `score_source` | where the `.mxl` was exported from. **Read by no code** — it is there so the next person can find the master |
-| `score`, `output` | the `.mxl` in, the video out |
+| `score`, `output` | the `.mxl` in, the video out. **Omit `score`** and the song is passed through instead of engraved: its `source` is already a finished play-along, so `fetch` + `render` only wrap it in the card and the `lead_seconds` / `tail_seconds` silence. `align`, `preview` and `clip` refuse to run |
 | `loudness` | opt-in level shaping; see **Loudness** |
 
 ### `layout`
@@ -99,6 +99,7 @@ scaffold leaves an `_tempo` note explaining the sweep it chose.
 | `countdown_min_bars` | 2 | shortest wait that earns a countdown, in recording bars. Also gates which waits `loudness` lifts |
 | `cursor_lag_seconds` | -0.48 | the player's lead; see **Where the cursor sits** |
 | `tail_seconds` | 10.0 | silence held after the last note, so the video can sit in a playlist without the next one clipping its ending |
+| `lead_seconds` | 0.0 | silence held *before* the first note. Passthrough only: an engraved song's lead is its countdown, measured in bars |
 | `intro_seconds` | 8.0 | how long the instrument card covers the staves at the start, fading out over the last second |
 
 ### `align`
