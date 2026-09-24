@@ -34,3 +34,7 @@ reloj/reloj.mscz
 # It belongs to the machine, not to the repo, and it is worth as much as the
 # account password -- anyone holding it is signed in as you. Never commit it.
 cookies.txt
+
+# Console logs the Playwright MCP server drops wherever it happens to be run.
+# They belong to a browsing session, not to a song or to the pipeline.
+.playwright-mcp/
