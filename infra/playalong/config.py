@@ -73,6 +73,14 @@ class Song:
         # Opt-in: the recording ships untouched unless the song asks for its
         # loudness to be evened out -- see mix.level
         self.loudness = data.get("loudness")
+        # A plain trim, and deliberately nothing more. `loudness` is the shaped
+        # one: it re-levels by median, lifts the waits and limits the peaks,
+        # which is the right answer for a track that fights the player and the
+        # wrong one for "this song sits a bit loud next to the one before it".
+        # Level differences between songs are usually intent -- an energetic
+        # number is supposed to arrive loud -- so the knob that only moves the
+        # level has to exist separately from the one that reshapes the song.
+        self.gain_db = float(data.get("gain_db", 0.0))
         # Optional: a song whose video already exists -- score, cursor and all --
         # is only passed through, so there is nothing to engrave or align. It
         # still gets the instrument card and the tail every other song gets.

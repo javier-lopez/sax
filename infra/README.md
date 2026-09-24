@@ -87,6 +87,7 @@ scaffold leaves an `_tempo` note explaining the sweep it chose.
 | `audio` | a recording already in the song directory, used *instead* of `source`. Then it is an input, not a download, and belongs beside the score rather than in `build/`. No song here uses it |
 | `score_source` | where the `.mxl` was exported from. **Read by no code** — it is there so the next person can find the master |
 | `score`, `output` | the `.mxl` in, the video out. **Omit `score`** and the song is passed through instead of engraved: its `source` is already a finished play-along, so `fetch` + `render` only wrap it in the card and the `lead_seconds` / `tail_seconds` silence. `align`, `preview` and `clip` refuse to run |
+| `gain_db` | a plain trim in dB, and nothing else. For a song that only sits wrong *next to its neighbours* in a playlist; see **Two different volume knobs** |
 | `loudness` | opt-in level shaping; see **Loudness** |
 
 ### `layout`
@@ -98,8 +99,8 @@ scaffold leaves an `_tempo` note explaining the sweep it chose.
 | `countdown_label` | `"ESPERA"` | the word beside the count |
 | `countdown_min_bars` | 2 | shortest wait that earns a countdown, in recording bars. Also gates which waits `loudness` lifts |
 | `cursor_lag_seconds` | -0.48 | the player's lead; see **Where the cursor sits** |
-| `tail_seconds` | 10.0 | silence held after the last note, so the video can sit in a playlist without the next one clipping its ending |
-| `lead_seconds` | 0.0 | silence held *before* the first note. Passthrough only: an engraved song's lead is its countdown, measured in bars |
+| `tail_seconds` | 10.0 | silence this pipeline *adds* after the last note, so the video can sit in a playlist without the next one clipping its ending. It is a pad, not a target: it never describes how much silence the finished video ends with, only how much was appended. See **Silence is either added or inherited** |
+| `lead_seconds` | 0.0 | silence held *before* the first note, for where the countdown is not enough time to get the horn up. The picture holds its opening frame and the audio is pushed back by real samples; see **Silence is either added or inherited** for why it may not be a timestamp offset |
 | `intro_seconds` | 8.0 | how long the instrument card covers the staves at the start, fading out over the last second |
 
 ### `align`
@@ -358,3 +359,87 @@ The label and the number are measured and centred **as one block**, and nudged
 off centre only if a long credit or a long instrument name reaches in. Pinning
 each piece to its own offset from the centre leaves a one-digit count sitting
 visibly left of a two-digit one.
+
+## Silence is either added or inherited
+
+`lead_seconds` and `tail_seconds` are **pads**, not targets. They say how much
+silence this pipeline appends, never how much the finished video holds — a
+published play-along usually arrives with silence of its own at one end or
+both, and a backing track often ends on a long fade into nothing.
+
+So before changing either one, measure what is already there:
+
+    ffmpeg -i build/video.mkv -af silencedetect=noise=-45dB:d=0.4 -f null -
+
+The threshold matters. At -60 dB the ring of the last note still counts as
+sound and a real fifteen-second ending reads as eight; at -30 dB the room tone
+of the backing track counts as silence and reports an ending that is not there.
+-45 dB sits in the gap where a note has died but the noise floor has not risen.
+
+The rule that falls out of this, and the reason it is worth writing down:
+
+> **Only trim silence this pipeline added.** Silence that came with the source
+> belongs to the performance — it is the ending, or the space the arranger left
+> — and shortening it edits someone's music rather than this video's packaging.
+
+`my-way` is the case that established it. Its source closes with 15.7s of its
+own, so its `tail_seconds` is 0: there is no pad, and an instruction to take
+five seconds off the end has nothing to act on. The answer is to leave it, not
+to reach into the source for the difference.
+
+### A lead is samples, never a timestamp
+
+Setting `lead_seconds` on an engraved song costs one generation of opus, and
+that is deliberate. The free way to delay audio is `-itsoffset`, which lets the
+stream copy through bit for bit and moves only the first packet's timestamp:
+
+    primer pts de audio: 10.000000     <- reloj, built this way
+    primer pts de video:  0.000000
+
+The file then carries no samples at all before ten seconds — just a hole.
+ffmpeg and most players fill a hole with silence, but that is a convention they
+choose, not something the file states, and a transcoder is free to pull the
+audio forward to zero instead. These videos are uploaded to YouTube, which
+transcodes everything it receives, and a decision that goes the other way puts
+the whole song ten seconds ahead of a picture that starts on time — a failure
+that only shows up after publishing.
+
+So the render pays for `adelay` and a re-encode, and the head is silent by
+construction. The levels are not touched; the codec, sample rate and channel
+count are still asserted against the source afterwards. Verify a lead by
+comparing where the first sound falls in `build/audio.*` against where it falls
+in the finished video — the difference must equal `lead_seconds` exactly.
+Checking `start_time` instead proves nothing: Matroska reports 0 either way.
+
+## Two different volume knobs
+
+`gain_db` and `loudness` both change how loud a song is, and reaching for the
+wrong one does damage that is hard to hear as damage.
+
+| | `gain_db` | `loudness` |
+|---|---|---|
+| what it does | multiplies the whole track by one constant | re-levels by a rolling median, lifts the waits, applies the score's `sections`, shifts to `target`, limits to `peak` |
+| what it preserves | everything: the arc, the accents, the dynamics | the level; not the shape |
+| works on | any song, engraved or passed through | engraved only — `mix.level` needs a score and a sync map |
+| cost | one opus generation at mux time | a full decode, analysis and re-encode |
+
+Reach for **`loudness`** when the recording fights the player: a whispered
+intro that street noise swallows, a chorus that arrives as a jolt, a section
+the player wants lifted. That is a mix problem, and it needs the score to solve.
+
+Reach for **`gain_db`** when the song is fine on its own and only sits wrong
+against its neighbours. This is the common case, and the temptation is to
+"fix" it with `loudness` because that is the knob with a `target` in it.
+Resist it: levelling a song that does not need levelling flattens the arc the
+arranger wrote, and the result is a song at the right level that has stopped
+going anywhere.
+
+> A level difference between two songs is usually **intent**, not error. An
+> energetic number is supposed to arrive loud; a ballad is supposed to open
+> under the song before it. Measure before changing anything, and change only
+> the junction that actually bothers someone playing the list.
+
+`cant-help-falling-in-love` carries `"gain_db": -3.0` for exactly this reason:
+it opens at −9.9 LUFS short-term, above the −11.1 that `el-rey-leon` climbs to
+at its ending, so a ballad entered harder than the climax before it. Nothing
+about the song itself was wrong.

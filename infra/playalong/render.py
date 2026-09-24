@@ -559,10 +559,13 @@ def passthrough(song, src, dest, log=print):
     # "not started yet"; the same frame under a red label reads as an opening
     # title, which is what it is.
     inputs = ["-i", src]
+    afilt = [f"adelay={round(lead * 1000)}:all=1"]
+    if song.gain_db:
+        afilt.append(f"volume={song.gain_db:+.2f}dB")
+    afilt.append(f"apad=pad_dur={tail:.3f}")
     chain = [f"[0:v]tpad=start_mode=clone:start_duration={lead:.3f}"
              f":stop_mode=clone:stop_duration={tail:.3f}[p]",
-             f"[0:a]adelay={round(lead * 1000)}:all=1,"
-             f"apad=pad_dur={tail:.3f}[a]"]
+             "[0:a]" + ",".join(afilt) + "[a]"]
     vlabel = "[p]"
 
     if intro > 0:
@@ -593,8 +596,9 @@ def passthrough(song, src, dest, log=print):
 
     if os.path.exists(dest):
         os.remove(dest)             # iterate in place, never accumulate
-    log(f"{w}x{h} at {fps:.2f} fps; lead {lead:.0f}s, card {intro:.0f}s, "
-        f"tail {tail:.0f}s")
+    log(f"{w}x{h} at {fps:.2f} fps; lead {lead:.1f}s, card {intro:.0f}s, "
+        f"tail {tail:.1f}s"
+        + (f", gain {song.gain_db:+.1f} dB" if song.gain_db else ""))
     subprocess.run(
         ["ffmpeg", "-y", "-v", "error", *inputs,
          "-filter_complex", ";".join(chain), "-map", vlabel, "-map", "[a]",
@@ -617,16 +621,40 @@ def render_video(song, score, sync, audio_path, audio_len, log=print,
     """
     r = Renderer(song, score, sync, log=log)
     tail = song.layout["tail_seconds"]
+    # An engraved song's lead is normally its countdown, which is as long as
+    # the recording's own intro and no longer. Where that is not enough time to
+    # get the horn up, this holds the opening frame before the backing track
+    # starts. A clip does not take it: a clip's span is score time, and pushing
+    # it down by the lead would spend a quarter of a 40-second window on a
+    # still frame instead of on the bars being judged.
+    lead = 0.0 if span else song.layout["lead_seconds"]
+    # a clip carries the trim too: it is judged by playing along with it, and a
+    # clip at a level the finished video will not have is judged against the
+    # wrong thing
+    gain = [f"volume={song.gain_db:+.2f}dB"] if song.gain_db else []
     if span:
         t_from, t_to = span
         out = song.output
         audio_args = ["-ss", str(t_from), "-t", str(t_to - t_from), "-i", audio_path]
-        codec = ["-c:a", "libopus", "-b:a", "160k"]
+        codec = (["-af", ",".join(gain)] if gain else []) \
+            + ["-c:a", "libopus", "-b:a", "160k"]
     else:
-        t_from, t_to = 0.0, audio_len + tail
+        t_from, t_to = 0.0, lead + audio_len + tail
         out = song.output
         audio_args = ["-i", audio_path]
-        codec = ["-c:a", "copy"]
+        # A lead has to be real samples. -itsoffset would be free -- the stream
+        # would still copy through bit for bit -- but all it moves is the first
+        # packet's timestamp, and what the gap MEANS is then up to whatever
+        # opens the file: ffmpeg and most players hold silence, and a
+        # transcoder that instead pulls the audio forward to zero drops the
+        # whole song ten seconds out of step with a picture that starts on
+        # time. This file is uploaded to be transcoded, so it must not be
+        # readable two ways. One generation of opus is the price, and it buys
+        # a head that is silent by construction. Levels are untouched: this is
+        # a transcode, not a re-level.
+        af = ([f"adelay={round(lead * 1000)}:all=1"] if lead else []) + gain
+        codec = (["-af", ",".join(af), "-c:a", "libopus", "-b:a", "192k"]
+                 if af else ["-c:a", "copy"])
     if os.path.exists(out):
         os.remove(out)             # iterate in place, never accumulate
     n_frames = int((t_to - t_from) * r.fps)
@@ -636,10 +664,14 @@ def render_video(song, score, sync, audio_path, audio_len, log=print,
            *audio_args, "-map", "0:v", "-map", "1:a",
            "-c:v", "libx264", "-preset", "medium", "-crf", "18",
            "-pix_fmt", "yuv420p", *codec, out]
-    log(f"encoding {n_frames} frames ({t_from:.0f}-{t_to:.0f}s) -> {out}")
+    log(f"encoding {n_frames} frames ({t_from:.0f}-{t_to:.0f}s"
+        + (f", {lead:.0f}s lead" if lead else "") + f") -> {out}")
     proc = subprocess.Popen(cmd, stdin=subprocess.PIPE)
     for i in range(n_frames):
-        proc.stdin.write(r.frame_at(t_from + i / r.fps).tobytes())
+        # clamped, not shifted: every frame inside the lead is the frame the
+        # song opens on, so the picture waits with the player
+        proc.stdin.write(
+            r.frame_at(max(0.0, t_from + i / r.fps - lead)).tobytes())
         if i % (r.fps * 30) == 0:
             log(f"  {i}/{n_frames} frames ({i / r.fps:.0f}s)")
     proc.stdin.close()
@@ -648,10 +680,17 @@ def render_video(song, score, sync, audio_path, audio_len, log=print,
     out_codec = _audio_codec(out)
     if not span:
         src_codec = _audio_codec(audio_path)
+        # The guard still holds with a lead: the codec, rate and channel count
+        # have to survive the silence being prepended, even though the samples
+        # no longer do.
         if src_codec != out_codec:
             raise RuntimeError(f"audio was re-encoded: {src_codec} -> {out_codec}")
-        log(f"wrote {out} ({os.path.getsize(out) / 1e6:.1f} MB), "
-            f"audio {out_codec} copied through untouched")
+        why = ([f"{lead:.0f}s of real silence at the head"] if lead else []) \
+            + ([f"a {song.gain_db:+.1f} dB trim"] if song.gain_db else [])
+        how = (f"audio {out_codec}, re-encoded once to carry "
+               + " and ".join(why) if why
+               else f"audio {out_codec} copied through untouched")
+        log(f"wrote {out} ({os.path.getsize(out) / 1e6:.1f} MB), {how}")
     else:
         log(f"wrote {out} ({os.path.getsize(out) / 1e6:.1f} MB)")
     return out

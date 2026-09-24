@@ -5,6 +5,7 @@
   "source": "https://www.youtube.com/watch?v=uTOl7xMljHk",
   "output": "besame-mucho_playalong.mkv",
   "layout": {
-    "tail_seconds": 15.0
+    "lead_seconds": 10.0,
+    "tail_seconds": 10.0
   }
 }
