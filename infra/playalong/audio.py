@@ -12,12 +12,32 @@ import glob
 import json
 import os
 import subprocess
+import urllib.parse
 
 ANALYSIS_SR = 22050
+# Containers a source may arrive in. Used only to recognise an extension in a
+# URL, never to choose one.
+MEDIA_EXT = ("webm", "mkv", "mp4", "m4a", "opus", "ogg", "mp3", "wav", "flac")
 
 
 def _existing(build_dir):
     return sorted(glob.glob(os.path.join(build_dir, "audio.*")))
+
+
+def _target(build_dir, stem, url):
+    """build/<stem>.<ext>, taking the extension from the URL where it says one.
+
+    yt-dlp names a download after the format it recognised, and a direct file
+    URL has no format to recognise: a mirror of a source lands as
+    `audio.unknown_video`, which every later stage then has to probe to find
+    out what it is holding. The stable URL already carries the answer in its
+    path -- the signed one it redirects to does not -- so read it there, and
+    fall back to yt-dlp's guess for a site URL, where there is nothing to read.
+    """
+    ext = os.path.splitext(urllib.parse.urlparse(url or "").path)[1]
+    ext = ext.lstrip(".").lower()
+    return os.path.join(build_dir,
+                        f"{stem}.{ext}" if ext in MEDIA_EXT else f"{stem}.%(ext)s")
 
 
 # YouTube signs its media URLs with a JavaScript challenge. deno runs the
@@ -58,7 +78,7 @@ def fetch(url, build_dir, refetch=False, cookies=None, log=print):
          # explicit sort makes bitrate then sample rate the tie-breakers rather
          # than yt-dlp's container preferences
          "-f", "bestaudio/best", "-S", "abr,asr",
-         "-o", os.path.join(build_dir, "audio.%(ext)s"), url],
+         "-o", _target(build_dir, "audio", url), url],
         check=True)
     have = _existing(build_dir)
     if not have:
@@ -85,7 +105,7 @@ def fetch_video(url, build_dir, refetch=False, cookies=None, log=print):
         ["yt-dlp", "--no-playlist", *EJS,
          *_auth(cookies, log),
          "-f", "bestvideo+bestaudio/best", "--merge-output-format", "mkv",
-         "-o", os.path.join(build_dir, "video.%(ext)s"), url],
+         "-o", _target(build_dir, "video", url), url],
         check=True)
     have = sorted(glob.glob(os.path.join(build_dir, "video.*")))
     if not have:

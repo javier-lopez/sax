@@ -2,7 +2,7 @@
   "title": "Close to You",
   "credit": "The Carpenters",
   "instrument": "YDS-120: T4 (tenor, si bemol)",
-  "source": "https://www.youtube.com/watch?v=vm-GbDPMUrY",
+  "source": "https://github.com/javier-lopez/sax/releases/download/mirror/close-to-you.mkv",
   "gain_db": -2.0,
   "output": "close-to-you_playalong.mkv",
   "layout": {

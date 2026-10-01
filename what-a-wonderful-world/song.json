@@ -2,7 +2,7 @@
   "title": "What a Wonderful World",
   "credit": "Louis Armstrong",
   "instrument": "YDS-120: A4 (alto, mi bemol)",
-  "source": "https://www.youtube.com/watch?v=vPqwolnJtIw",
+  "source": "https://github.com/javier-lopez/sax/releases/download/mirror/what-a-wonderful-world.mkv",
   "output": "what-a-wonderful-world_playalong.mkv",
   "layout": {
     "lead_seconds": 10.0,

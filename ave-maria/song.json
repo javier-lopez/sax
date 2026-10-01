@@ -2,7 +2,7 @@
   "title": "Ave María",
   "credit": "Bach · Gounod",
   "instrument": "YDS-120: A14 (alto, mi bemol)",
-  "source": "https://www.youtube.com/watch?v=9_-gw2qf1F0",
+  "source": "https://github.com/javier-lopez/sax/releases/download/mirror/ave-maria.mkv",
   "output": "ave-maria_playalong.mkv",
   "layout": {
     "lead_seconds": 15.0,

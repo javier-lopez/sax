@@ -61,7 +61,7 @@ mysong/
   "title": "El Círculo de la Vida",
   "credit": "Elton John",
   "instrument": "YDS-120: S11 (soprano, si bemol)",
-  "source": "https://www.youtube.com/watch?v=...",
+  "source": "https://github.com/javier-lopez/sax/releases/download/mirror/el-rey-leon.webm",
   "score_source": "https://musescore.com/user/.../scores/...",
   "score": "el-rey-leon.mxl",
   "output": "el-rey-leon_playalong.mkv",
@@ -83,7 +83,7 @@ scaffold leaves an `_tempo` note explaining the sweep it chose.
 |---|---|
 | `title`, `credit` | the header's first two lines |
 | `instrument` | the horn the chart is written for. Shown on the opening card, under the credit in the header, and on the closing card. A reader who grabs the wrong horn is off by a transposition before the first note |
-| `source` | the YouTube URL `fetch` downloads |
+| `source` | the URL `fetch` downloads. A site page, or a direct link to a file — see **The mirror** |
 | `audio` | a recording already in the song directory, used *instead* of `source`. Then it is an input, not a download, and belongs beside the score rather than in `build/`. No song here uses it |
 | `score_source` | where the `.mxl` was exported from. **Read by no code** — it is there so the next person can find the master |
 | `score`, `output` | the `.mxl` in, the video out. **Omit `score`** and the song is passed through instead of engraved: its `source` is already a finished play-along, so `fetch` + `render` only wrap it in the card and the `lead_seconds` / `tail_seconds` silence. `align`, `preview` and `clip` refuse to run |
@@ -443,3 +443,40 @@ going anywhere.
 it opens at −9.9 LUFS short-term, above the −11.1 that `el-rey-leon` climbs to
 at its ending, so a ballad entered harder than the climax before it. Nothing
 about the song itself was wrong.
+
+## The mirror
+
+Every song's `source` points at a release asset on this repo rather than at
+YouTube:
+
+    https://github.com/javier-lopez/sax/releases/download/mirror/<song>.<ext>
+
+Those assets are the streams YouTube served, **byte for byte**, as yt-dlp
+downloaded them — verified by md5 against the originals. Nothing is re-encoded,
+so fetching from the mirror gives a render identical to fetching from the site.
+Three things improve and nothing is given up:
+
+- **A takedown stops mattering.** A `song.json` describes how to turn a URL into
+  the finished video, which is what makes a song eleven lines instead of fifty
+  megabytes — but the description began at a URL someone else controlled. If it
+  stopped answering, the finished video survived and the ability to *change* it
+  did not: the card, the silence and the gain are burned into the output.
+- **No cookies.** The mirror is a plain file on a public repo. No signed-in
+  session, no JS challenge, no bot check, no `cookies.txt` to re-export when it
+  rotates. `--cookies` is still passed when the file is present, and is now only
+  needed to fetch a *new* song from YouTube for the first time.
+- **No format guessing.** `bestaudio` and `bestvideo+bestaudio` still apply to a
+  site URL; a direct link has exactly one stream and that is the one stored.
+
+The assets are a release rather than files in the tree because the repo is
+131 KB and they are 85 MB: in git every clone would carry them forever, and a
+replaced file would stay in history for good.
+
+**Where each one came from is recorded in the release's own `README.txt`**, not
+in `song.json` — once `source` points at the mirror, the repo has nowhere else
+that remembers whose recording it is. Adding a song means fetching it from the
+site first, then uploading what landed in `build/`:
+
+    gh release upload mirror <song>/build/video.mkv --clobber
+
+renaming it to the song's own name on the way, and pointing `source` at it.

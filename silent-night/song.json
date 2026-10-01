@@ -2,7 +2,7 @@
   "title": "Silent Night",
   "credit": "Franz Gruber",
   "instrument": "YDS-120: A8 (alto, mi bemol)",
-  "source": "https://www.youtube.com/watch?v=bZq3E3xzEbA",
+  "source": "https://github.com/javier-lopez/sax/releases/download/mirror/silent-night.mkv",
   "output": "silent-night_playalong.mkv",
   "layout": {
     "lead_seconds": 10.0,

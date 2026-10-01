@@ -2,7 +2,7 @@
   "title": "My Way",
   "credit": "Frank Sinatra",
   "instrument": "YDS-120: T4 (tenor, si bemol)",
-  "source": "https://www.youtube.com/watch?v=MyAuIbl0R1w",
+  "source": "https://github.com/javier-lopez/sax/releases/download/mirror/my-way.mkv",
   "output": "my-way_playalong.mkv",
   "layout": {
     "lead_seconds": 15.0,

@@ -2,7 +2,7 @@
   "title": "Besame mucho",
   "credit": "Consuelo Velázquez",
   "instrument": "YDS-120: A15 (alto, mi bemol)",
-  "source": "https://www.youtube.com/watch?v=uTOl7xMljHk",
+  "source": "https://github.com/javier-lopez/sax/releases/download/mirror/besame-mucho.mkv",
   "output": "besame-mucho_playalong.mkv",
   "layout": {
     "lead_seconds": 10.0,
