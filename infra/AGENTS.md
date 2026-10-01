@@ -40,6 +40,59 @@ then loudness**. Settling `align.offset` needs a clip; judging a level arc needs
 the whole piece, because it is the sections in relation to each other that is
 being judged. Do not open the second loop before the first one closes.
 
+## Step 0 — mirror the source, before anything else
+
+**A YouTube URL from the human is not a `source`. It is the thing to mirror.**
+
+Every `source` in this repo points at a release asset on the repo itself, not at
+the site. Before scaffolding, aligning or rendering anything, put the download
+in the mirror and point the song at it. Then iterate against the mirror, never
+against YouTube.
+
+```
+# 1. fetch once from the site -- this is the only step that needs cookies
+./infra/run.sh <song> fetch
+
+# 2. mirror what landed, under the song's own name
+cp <song>/build/video.mkv /tmp/<song>.mkv        # or audio.webm, for an engraved song
+gh release upload mirror /tmp/<song>.mkv --clobber
+
+# 3. point source at the mirror, and never at the site again
+#    https://github.com/javier-lopez/sax/releases/download/mirror/<song>.<ext>
+
+# 4. record where it came from, in the release's own README.txt
+```
+
+Why this is step 0 rather than a chore for later:
+
+- **The site answer is not reproducible.** It needs a signed-in session, it
+  solves a JS challenge, and it can refuse. Every iteration after step 1 should
+  be a plain file download that cannot fail for a reason unrelated to the work.
+- **A `song.json` describes a render it must still be able to perform.** The
+  finished video survives a takedown; the ability to change it does not, because
+  the card, the silence and the gain are burned into the output.
+- **Doing it at the end means doing it never.** The moment the song works is the
+  moment nobody wants to touch its config again.
+
+Step 4 is not optional. Once `source` points at the mirror, the release's
+`README.txt` is the **only** place that records whose recording it is — the repo
+has no other field for it.
+
+### If the song is abandoned, take it back out
+
+A song that is tried and dropped leaves an asset nobody will ever fetch, and a
+line in `README.txt` naming a recording the repo no longer uses:
+
+```
+gh release delete-asset mirror <song>.<ext> --yes
+```
+
+and remove its row from `README.txt`. Do this as part of abandoning the
+experiment, in the same breath as deleting the song directory — not as a
+follow-up. An orphan in the mirror is worse than clutter: the next person
+reading `README.txt` has no way to tell it apart from a song that is simply
+waiting to be rendered.
+
 ## Adding a song
 
 One command. It scaffolds, downloads, aligns, and leaves a clip to listen to:
@@ -50,6 +103,12 @@ One command. It scaffolds, downloads, aligns, and leaves a clip to listen to:
 
 It reads the score's metronome mark and centres the tempo sweep on it, which is
 faster and far more trustworthy than sweeping blind.
+
+**It leaves `source` pointing at the site**, because that is the only thing it
+was given. Do step 0 immediately after it returns — mirror the download and
+rewrite `source` — before the first clip. A song that reaches the ear loop still
+pointing at YouTube will re-hit the site on every `fetch` that finds `build/`
+empty, and will stop working the day the video does.
 
 **A song has exactly one output filename, and every render writes to it** — full
 or segment. Never invent a second name, never suffix a variant. The human keeps
@@ -246,6 +305,10 @@ at whether it is the *only* maximum.
   not belong in a song directory.
 - **Do not install anything on the host.** Everything runs in the image that
   `run.sh` builds.
+- **Never leave a `source` pointing at a site.** A YouTube URL is an input to
+  step 0, not a value to store. Mirror it, then point `source` at the mirror.
+- **Never leave an asset in the mirror for a song that was dropped.** Deleting
+  the song directory and deleting its asset are one action, not two.
 
 ## Failure modes
 
