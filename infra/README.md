@@ -346,7 +346,7 @@ settled by ear on a different render.
 | `cant-help-falling-in-love` | -0.22 |
 | `how-deep-is-your-love` | -0.22 |
 | `el-rey-leon` | -0.28 |
-| `tequila` | +0.015 |
+| `tequila` | +0.01 |
 | `reloj` | **+0.35** |
 
 The lead is bounded on both sides, and the upper bound is the one that
@@ -355,9 +355,9 @@ enough to park it on the notes being read hides them. Too little and the cue
 arrives after the moment to attack; too much and it covers the music.
 
 **A lead does not carry from one song to another by proportion of the beat.**
-`tequila` runs at 182 bpm and settled at `+0.015`, which is 0.045 of a quarter.
-`reloj` runs at 88 and settled at `+0.35`, which is 0.51 of one — eleven times
-the fraction. The first try on `tequila` was `+0.15` precisely *because* it
+`tequila` runs at 182 bpm and settled at `+0.01`, which is 0.030 of a quarter.
+`reloj` runs at 88 and settled at `+0.35`, which is 0.51 of one — seventeen
+times the fraction. The first try on `tequila` was `+0.15` precisely *because* it
 matched `reloj` proportionally, and it read as a drag.
 
 The reason is that the bar competes with the next note for the same space. At a
@@ -370,8 +370,8 @@ song's value.
 
 `reloj` is still the number to notice, and `tequila` is what sharpens why. Both
 sit on the positive side, but they are not the same finding. `tequila` is
-`+0.015` -- a hair, a tenth of a frame, settled on a song too fast to tolerate
-more. `reloj` is `+0.35`: half a beat at its own tempo, far enough that the bar
+`+0.01` -- a hair, under a third of a frame at 30 fps, settled on a song too
+fast to tolerate more. `reloj` is `+0.35`: half a beat at its own tempo, far enough that the bar
 reaches each note well after it sounds.
 
 So the diagnostic is not "across zero" but "far from the rest in beats". A lead

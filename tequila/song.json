@@ -12,7 +12,7 @@
     "countdown_label": "ESPERA",
     "countdown_min_bars": 2,
     "tail_seconds": -7.0,
-    "cursor_lag_seconds": 0.015,
+    "cursor_lag_seconds": 0.01,
     "lead_seconds": 10.0
   },
   "align": {
