@@ -159,16 +159,20 @@ It is bounded above as well as below, and agents keep missing the upper bound.
 The cursor is an opaque bar drawn over the staff, so a lead that parks it on the
 notes the player is reading hides them -- "se adelanta" can mean the cue is
 early *or* that the bar is sitting on the next bar of music. Ask which, because
-the fix is the same knob in opposite directions. This is taste, it belongs to the player rather than to the song, and it
-is the only knob left once the offset measures right. It defaults to -0.48. The
-songs here carry -0.22, -0.28 and +0.35, each settled by ear on its own render;
-`README.md` next to this file tabulates them. Take the human's number for the
-song in front of you and do not average it against another song's.
+the fix is the same knob in opposite directions. This is taste, it belongs to
+the player rather than to the song, and it is the only knob left once the offset
+measures right. It defaults to -0.48, and the songs here carry anything from
+-0.28 to +0.35; `README.md` next to this file tabulates them. Take the human's
+number for the song in front of you and do not average it against another
+song's -- not even proportionally, because the tolerable lead shrinks as a
+fraction of the beat when the tempo rises. Settle each song from zero.
 
-**A lead on the far side of zero from its siblings is a finding, not a
-preference.** The lead belongs to the player, so the same player's songs should
-cluster. One that does not is absorbing an error in that song's map -- check its
-`align.offset` and, if it is locked, whether the lock predates the current
+**A lead far from its siblings in beats is a finding, not a preference.** The
+sign alone says little: `tequila` sits at +0.015, which is a hair past zero on a
+song too fast to allow more. A *large* one is the tell -- `reloj` at +0.35 is
+half a beat at its own tempo. The lead belongs to the player, so a song needing
+much more than the others is usually absorbing an error in its own map: check
+its `align.offset` and, if it is locked, whether the lock predates the current
 renderer. Say so rather than quietly writing the number down.
 
 Getting these backwards is the expensive mistake. Absorbing a player's lead into

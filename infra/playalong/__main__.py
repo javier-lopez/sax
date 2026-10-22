@@ -103,7 +103,7 @@ def main(argv):
     src = None
 
     if "fetch" in stages:
-        src = audio.local_or_fetch(song)
+        src = audio.trimmed(song, audio.local_or_fetch(song))
         audio.to_wav(src, song.wav)
         print(f"audio: {src} ({audio.duration(src):.1f}s)")
 
@@ -122,7 +122,7 @@ def main(argv):
             render.preview(song, score, sync)
         if {"render", "clip"} & set(stages):
             if src is None:
-                src = audio.local_or_fetch(song)
+                src = audio.trimmed(song, audio.local_or_fetch(song))
             mux = src
             if song.loudness:
                 mux = mix.level(src, os.path.join(song.build, "levelled.opus"),

@@ -87,6 +87,7 @@ scaffold leaves an `_tempo` note explaining the sweep it chose.
 | `audio` | a recording already in the song directory, used *instead* of `source`. Then it is an input, not a download, and belongs beside the score rather than in `build/`. No song here uses it |
 | `score_source` | where the `.mxl` was exported from. **Read by no code** — it is there so the next person can find the master |
 | `score`, `output` | the `.mxl` in, the video out. **Omit `score`** and the song is passed through instead of engraved: its `source` is already a finished play-along, so `fetch` + `render` only wrap it in the card and the `lead_seconds` / `tail_seconds` silence. `align`, `preview` and `clip` refuse to run |
+| `trim_seconds` | seconds to drop off the FRONT of the recording, for a source that opens with something that is not the music. Belongs here and not in the mirror; see **Cutting the front off** |
 | `gain_db` | a plain trim in dB, and nothing else. For a song that only sits wrong *next to its neighbours* in a playlist; see **Two different volume knobs** |
 | `loudness` | opt-in level shaping; see **Loudness** |
 
@@ -309,8 +310,21 @@ This is a separate, smaller term from `align.offset`: geometry moves the cursor
 relative to the *notes*, the offset moves the whole map relative to the *audio*.
 `layout.cursor_lag_seconds` is the third term and the player's own: it runs the
 whole display ahead of the sound, rows included, so the cursor has crossed into
-the next row before its first note is due. It defaults to `-0.48`. Reach for
-`align.offset` first, since it is the one that moves the countdowns too — and
+the next row before its first note is due. It defaults to `-0.48`.
+
+The sign has been derived backwards three times, so here is the line that
+settles it, from `Renderer.frame_at`:
+
+    tc = t - self.cursor_lag
+
+The cursor is drawn at score time `tc`. A **negative** lag makes `tc` later
+than now, so the bar shows the future and runs **ahead** of the sound; a
+**positive** lag makes `tc` earlier, so the bar lags **behind** and crosses
+each note after it has sounded. The name is what misleads: a negative *lag*
+is a lead, and reading it in prose costs a double negative every time.
+
+Reach for `align.offset` first, since it is the one that moves the countdowns
+too — and
 never absorb a player's lead into it, because that is the only number in the
 file with an external check.
 
@@ -320,7 +334,9 @@ settled by ear on a different render.
 | song | `cursor_lag_seconds` |
 |---|---|
 | `cant-help-falling-in-love` | -0.22 |
+| `how-deep-is-your-love` | -0.22 |
 | `el-rey-leon` | -0.28 |
+| `tequila` | +0.015 |
 | `reloj` | **+0.35** |
 
 The lead is bounded on both sides, and the upper bound is the one that
@@ -328,11 +344,29 @@ surprises: the cursor is an opaque bar drawn over the staff, so a lead large
 enough to park it on the notes being read hides them. Too little and the cue
 arrives after the moment to attack; too much and it covers the music.
 
-`reloj` is the number to notice. The same player settled the other two around
--0.25 and this one at **+0.35** -- not a little different, but on the other side
-of zero, with the bar reaching each note *after* it sounds. A lead is the
-player's own constant, so one song sitting across zero from the rest is not
-taste changing: it says that song's map is off by about that much, and the lead
+**A lead does not carry from one song to another by proportion of the beat.**
+`tequila` runs at 182 bpm and settled at `+0.015`, which is 0.045 of a quarter.
+`reloj` runs at 88 and settled at `+0.35`, which is 0.51 of one — eleven times
+the fraction. The first try on `tequila` was `+0.15` precisely *because* it
+matched `reloj` proportionally, and it read as a drag.
+
+The reason is that the bar competes with the next note for the same space. At a
+ballad tempo the following note is still far down the staff and a bar sitting
+half a beat back costs nothing; at speed it is already arriving, and the bar is
+parked where the eye needs to be. So the faster the song, the smaller the
+*fraction* of a beat it tolerates — not the same fraction, and not the same
+number of seconds either. Settle each song from zero rather than from another
+song's value.
+
+`reloj` is still the number to notice, and `tequila` is what sharpens why. Both
+sit on the positive side, but they are not the same finding. `tequila` is
+`+0.015` -- a hair, a tenth of a frame, settled on a song too fast to tolerate
+more. `reloj` is `+0.35`: half a beat at its own tempo, far enough that the bar
+reaches each note well after it sounds.
+
+So the diagnostic is not "across zero" but "far from the rest in beats". A lead
+is the player's own constant, and a song that needs a *large* one is usually not
+taste changing: it says that song's map is off by about that much and the lead
 is absorbing it. `reloj` is locked with values hand-tuned against an older
 renderer and carries no `align.offset` of its own, which is where to look. The
 video is right either way -- the player judged it -- but the next person should
@@ -480,3 +514,34 @@ site first, then uploading what landed in `build/`:
     gh release upload mirror <song>/build/video.mkv --clobber
 
 renaming it to the song's own name on the way, and pointing `source` at it.
+
+## Cutting the front off
+
+A backing track often opens with something that is not the music: a channel
+sting, a spoken introduction, a logo card. `trim_seconds` drops it.
+
+The cut happens **here and not before the mirror**, and that is the whole point
+of the key existing. Trimming the file on the way to the release would be
+simpler and is wrong twice over: the mirror stops being a faithful copy of what
+the source served, and the number vanishes into a binary where nobody can see
+it, question it or revise it. As a key it is a line of the recipe, settled by
+ear and changed by editing one value — the same standing as `align.offset`.
+
+On an engraved song the cut produces `build/trimmed.opus`, cached against the
+source and the number, and every stage downstream sees that one file: the
+analysis wav, the alignment and the mux all work in the trimmed timeline, so no
+stage has to remember to subtract. On a passed-through song it is an `-ss` on
+the input, which costs nothing because that path re-encodes both streams
+anyway.
+
+**The number is not the length of the thing you want gone — measure it.**
+`tequila`'s sting looked like six seconds and runs to 6.669:
+
+    ffmpeg -i build/audio.m4a -af silencedetect=noise=-50dB:d=0.1 -f null -
+
+Cutting at a round 6.0 would have left two thirds of a second of it, which is
+long enough to hear and short enough to blame on something else.
+
+Trimming moves everything downstream, so do it **before** settling the
+alignment: `align.t0` is measured in the trimmed timeline, and changing the trim
+afterwards invalidates the offset that was settled by ear against it.

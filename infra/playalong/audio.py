@@ -113,6 +113,41 @@ def fetch_video(url, build_dir, refetch=False, cookies=None, log=print):
     return have[0]
 
 
+def trimmed(song, src, log=print):
+    """`trim_seconds` removed from the front, as a derived file.
+
+    The original is never touched: it is the mirror's copy, and the only thing
+    that can still answer "what did the source actually sound like". The cut is
+    a number in song.json, so it can be revised by ear the way the offset is,
+    and the whole analysis chain downstream sees one trimmed recording rather
+    than each stage having to remember to subtract.
+
+    Cached against the source and the number, so re-rendering does not re-cut.
+    """
+    secs = song.trim_seconds
+    if not secs:
+        return src
+    # .opus whatever the source container was: the cut is re-encoded, so the
+    # name has to say what is actually inside rather than inherit a wrapper
+    # that may not hold it
+    dest = os.path.join(song.build, "trimmed.opus")
+    stamp = {"src": os.path.getmtime(src), "seconds": secs, "v": 1}
+    sidecar = dest + ".json"
+    if os.path.exists(dest) and os.path.exists(sidecar):
+        with open(sidecar) as f:
+            if json.load(f) == stamp:
+                return dest
+    subprocess.run(
+        ["ffmpeg", "-y", "-v", "error", "-ss", f"{secs:.3f}", "-i", src,
+         "-c:a", "libopus", "-b:a", "192k", "-vn", dest],
+        check=True)
+    log(f"trimmed {secs:.2f}s off the front -> {os.path.basename(dest)} "
+        f"({duration(dest):.1f}s)")
+    with open(sidecar, "w") as f:
+        json.dump(stamp, f)
+    return dest
+
+
 def local_or_fetch(song):
     """A recording supplied as an input wins over anything downloadable."""
     if song.audio_in:

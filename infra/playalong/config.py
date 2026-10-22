@@ -81,6 +81,13 @@ class Song:
         # number is supposed to arrive loud -- so the knob that only moves the
         # level has to exist separately from the one that reshapes the song.
         self.gain_db = float(data.get("gain_db", 0.0))
+        # Seconds to drop off the front of the recording. A backing track often
+        # opens with something that is not the music -- a channel sting, a
+        # spoken introduction, a logo. The cut belongs here and not in the
+        # mirror: the mirror is the archive, and baking one person's judgement
+        # into it makes the number invisible and unrevisable. Here it is a
+        # value in the recipe, settled by ear like every other.
+        self.trim_seconds = float(data.get("trim_seconds", 0.0))
         # Optional: a song whose video already exists -- score, cursor and all --
         # is only passed through, so there is nothing to engrave or align. It
         # still gets the instrument card and the tail every other song gets.

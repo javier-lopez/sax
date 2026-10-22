@@ -558,7 +558,10 @@ def passthrough(song, src, dest, log=print):
     # passed-through song wants a lead at all. A frozen first frame reads as
     # "not started yet"; the same frame under a red label reads as an opening
     # title, which is what it is.
-    inputs = ["-i", src]
+    # the trim seeks the input rather than filtering it: this path re-encodes
+    # both streams anyway, so the cut is free here and frame-accurate
+    inputs = (["-ss", f"{song.trim_seconds:.3f}"] if song.trim_seconds
+              else []) + ["-i", src]
     afilt = [f"adelay={round(lead * 1000)}:all=1"]
     if song.gain_db:
         afilt.append(f"volume={song.gain_db:+.2f}dB")
