@@ -125,10 +125,20 @@ list of candidates to try. A one-element list pins a value.
 `measures_per_row` is a target, not a rule. `Score.rows` plans the rows and two
 things override the width:
 
-A **multi-measure rest is always one row of its own**, however many bars it
-spans. Verovio lays a multi-rest out as a single element and drops any break
+A **multi-measure rest of `MULTIREST_ROW_BARS` bars or more is one row of its
+own**. Verovio lays a multi-rest out as a single element and drops any break
 encoded inside it, so it cannot be cut anyway — and one "wait 18" block reads
 better than the same wait chopped into rows.
+
+A shorter one flows into the row beside it. The argument above is about *long*
+waits: the block earns its row by replacing a count the player would otherwise
+have to keep. A block reading "1" replaces nothing — the player can see one
+empty bar — so it spends a whole page turn on a single bar of silence.
+`tequila` is where this showed up: three one-bar rests cost it two rows out of
+twenty-four, since the bars those rows held still have to sit somewhere. The
+threshold is **3** because that is the shortest rest any settled song gives its
+own row (`cant-help-falling-in-love`), which makes it the lowest value that
+leaves every approved layout untouched.
 
 Between rests, a dynamic program splits the stretch into rows that may be one
 measure wider or narrower than nominal. The eye has to jump to the next row

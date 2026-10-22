@@ -32,6 +32,13 @@ def extract(mxl_path, dest_xml):
     return dest_xml
 
 
+# A multi-measure rest shorter than this shares a row instead of taking one.
+# Three because the shortest rest any settled song gives its own row spans
+# three bars; below that the "wait N" block carries no information the player
+# could not read from the bar itself.
+MULTIREST_ROW_BARS = 3
+
+
 class Score:
     """Flattened single-part view: quarter-note timeline, notes, measures."""
 
@@ -121,9 +128,12 @@ class Score:
     def rows(self, measures_per_row):
         """Row plan as (first, end) measure indices, end exclusive.
 
-        A multi-measure rest is one row of its own, however long: verovio lays
-        it out as a single element and drops any break encoded inside it, and
-        one "wait 18" block reads better than the same wait chopped into rows.
+        A multi-measure rest of MULTIREST_ROW_BARS or more is one row of its
+        own: verovio lays it out as a single element and drops any break
+        encoded inside it, and one "wait 18" block reads better than the same
+        wait chopped into rows. A shorter one flows into the row beside it --
+        the argument above is about long waits, and a whole row carrying a
+        block that reads "1" spends a page turn on a single empty bar.
 
         Between rests, rows are measures_per_row wide but may give or take one
         measure to keep a held note off the start of a row. The eye has to jump
@@ -132,9 +142,10 @@ class Score:
         with it and leave the jump for the busy measure after.
         """
         rows, i = [], 0
-        rests = sorted(self.multirests)
+        own = {k for k, n in self.multirests.items() if n >= MULTIREST_ROW_BARS}
+        rests = sorted(own)
         while i < self.n_measures:
-            if i in self.multirests:
+            if i in own:
                 end = min(i + self.multirests[i], self.n_measures)
                 rows.append((i, end))
             else:
