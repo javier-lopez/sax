@@ -100,7 +100,7 @@ scaffold leaves an `_tempo` note explaining the sweep it chose.
 | `countdown_label` | `"ESPERA"` | the word beside the count |
 | `countdown_min_bars` | 2 | shortest wait that earns a countdown, in recording bars. Also gates which waits `loudness` lifts |
 | `cursor_lag_seconds` | -0.48 | the player's lead; see **Where the cursor sits** |
-| `tail_seconds` | 10.0 | silence this pipeline *adds* after the last note, so the video can sit in a playlist without the next one clipping its ending. It is a pad, not a target: it never describes how much silence the finished video ends with, only how much was appended. See **Silence is either added or inherited** |
+| `tail_seconds` | 10.0 | silence this pipeline *adds* after the last note. **Negative cuts instead**, for a recording that ends on dead air the publisher left rather than on the music; so the video can sit in a playlist without the next one clipping its ending. It is a pad, not a target: it never describes how much silence the finished video ends with, only how much was appended. See **Silence is either added or inherited** |
 | `lead_seconds` | 0.0 | silence held *before* the first note, for where the countdown is not enough time to get the horn up. The picture holds its opening frame and the audio is pushed back by real samples; see **Silence is either added or inherited** for why it may not be a timestamp offset |
 | `intro_seconds` | 8.0 | how long the instrument card covers the staves at the start, fading out over the last second |
 
@@ -430,6 +430,18 @@ The rule that falls out of this, and the reason it is worth writing down:
 own, so its `tail_seconds` is 0: there is no pad, and an instruction to take
 five seconds off the end has nothing to act on. The answer is to leave it, not
 to reach into the source for the difference.
+
+`tequila` is the case that sharpened it. Its source ends on 22.5s of nothing --
+no fade, no ring, the music simply stops at 133.6 of a 156.1s upload and the
+channel leaves the rest standing. Read literally the rule protects that, which
+is how a rule about respecting an ending turns into a rule about preserving
+dead air. The distinction it was always making is **music against oversight**,
+not added against inherited: a fade, a ritardando and the pause an arranger
+wrote are the performance; a publisher's unedited tail is packaging that
+happens to live inside the source file. A negative `tail_seconds` is for the
+second, and the measurement above is what tells the two apart -- a real ending
+decays through the threshold, an oversight sits flat under it from the last
+note to the final frame.
 
 ### A lead is samples, never a timestamp
 

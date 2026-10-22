@@ -642,6 +642,10 @@ def render_video(song, score, sync, audio_path, audio_len, log=print,
         codec = (["-af", ",".join(gain)] if gain else []) \
             + ["-c:a", "libopus", "-b:a", "160k"]
     else:
+        # A negative tail cuts instead of padding, for a recording that ends on
+        # dead air the publisher left rather than on the music. Capping the
+        # output is the whole mechanism: the frame loop already stops at t_to,
+        # and -t makes the audio stop with it instead of running on alone.
         t_from, t_to = 0.0, lead + audio_len + tail
         out = song.output
         audio_args = ["-i", audio_path]
@@ -666,7 +670,8 @@ def render_video(song, score, sync, audio_path, audio_len, log=print,
            "-s", f"{r.W}x{r.H}", "-r", str(r.fps), "-i", "-",
            *audio_args, "-map", "0:v", "-map", "1:a",
            "-c:v", "libx264", "-preset", "medium", "-crf", "18",
-           "-pix_fmt", "yuv420p", *codec, out]
+           "-pix_fmt", "yuv420p", *codec,
+           *(["-t", f"{t_to:.3f}"] if tail < 0 and not span else []), out]
     log(f"encoding {n_frames} frames ({t_from:.0f}-{t_to:.0f}s"
         + (f", {lead:.0f}s lead" if lead else "") + f") -> {out}")
     proc = subprocess.Popen(cmd, stdin=subprocess.PIPE)
