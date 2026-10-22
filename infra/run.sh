@@ -3,6 +3,7 @@
 #
 #   ./infra/run.sh reloj                     # fetch + align + render
 #   ./infra/run.sh reloj align preview       # just re-fit and eyeball it
+#   ./infra/run.sh loudness [song]           # levels across the repertoire
 #
 # Everything the pipeline needs lives in the song dir; nothing is installed on
 # the host.
@@ -33,6 +34,25 @@ if [ "$1" = "new" ]; then
     echo "listen to the output video, then tune:"
     echo "  $0 $name align clip 0 40 offset=0.3"
     exit 0
+fi
+
+# `loudness` asks about the whole repertoire rather than one song, so it takes
+# the place of the song argument the way `new` does.
+if [ "$1" = "loudness" ]; then
+    shift
+    if ! docker image inspect "$IMAGE" >/dev/null 2>&1; then
+        echo "building $IMAGE ..."
+        docker build -t "$IMAGE" "$here"
+    fi
+    # the image has no git, and the commit is provenance for each figure, so
+    # the host reads it and passes it in
+    exec docker run --rm \
+        --user "$(id -u):$(id -g)" \
+        -v "$here:/infra:ro" \
+        -v "$root:/work" \
+        -e "SAX_COMMIT=$(git -C "$root" rev-parse --short HEAD 2>/dev/null || true)" \
+        --entrypoint python3 \
+        "$IMAGE" -m playalong.loudness /work "$@"
 fi
 
 song=$1; shift

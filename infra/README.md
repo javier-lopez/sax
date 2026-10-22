@@ -346,7 +346,7 @@ settled by ear on a different render.
 | `cant-help-falling-in-love` | -0.22 |
 | `how-deep-is-your-love` | -0.22 |
 | `el-rey-leon` | -0.28 |
-| `tequila` | +0.01 |
+| `tequila` | 0 |
 | `reloj` | **+0.35** |
 
 The lead is bounded on both sides, and the upper bound is the one that
@@ -355,10 +355,12 @@ enough to park it on the notes being read hides them. Too little and the cue
 arrives after the moment to attack; too much and it covers the music.
 
 **A lead does not carry from one song to another by proportion of the beat.**
-`tequila` runs at 182 bpm and settled at `+0.01`, which is 0.030 of a quarter.
-`reloj` runs at 88 and settled at `+0.35`, which is 0.51 of one — seventeen
-times the fraction. The first try on `tequila` was `+0.15` precisely *because* it
-matched `reloj` proportionally, and it read as a drag.
+`reloj` runs at 88 bpm and settled at `+0.35`, which is 0.51 of a quarter.
+`tequila` runs at 182 and settled at `0` — none at all. The first try on
+`tequila` was `+0.15` precisely *because* it matched `reloj` proportionally, and
+it read as a drag; the search then walked down through `+0.045`, `+0.04`,
+`+0.035`, `+0.03`, `+0.025`, `+0.02`, `+0.015` and `+0.01` before landing on
+zero, which is the clearest evidence the proportion carries nothing.
 
 The reason is that the bar competes with the next note for the same space. At a
 ballad tempo the following note is still far down the staff and a bar sitting
@@ -368,11 +370,17 @@ parked where the eye needs to be. So the faster the song, the smaller the
 number of seconds either. Settle each song from zero rather than from another
 song's value.
 
-`reloj` is still the number to notice, and `tequila` is what sharpens why. Both
-sit on the positive side, but they are not the same finding. `tequila` is
-`+0.01` -- a hair, under a third of a frame at 30 fps, settled on a song too
-fast to tolerate more. `reloj` is `+0.35`: half a beat at its own tempo, far enough that the bar
+`reloj` is still the number to notice, and `tequila` is what sharpens why.
+They are not the same finding. `tequila` is `0`: at 182 bpm the geometry of the
+notehead is already the whole correction, and anything added reads as a drag.
+`reloj` is `+0.35`, half a beat at its own tempo, far enough that the bar
 reaches each note well after it sounds.
+
+Zero is also worth naming as a legitimate settled value rather than an
+unfinished one. The last steps on `tequila` were 5 ms apart, which at a
+1920 px strip is under two pixels of bar travel -- below the width of the
+cursor itself. A song can arrive at zero because the term it was correcting
+for is not there, not because nobody looked.
 
 So the diagnostic is not "across zero" but "far from the rest in beats". A lead
 is the player's own constant, and a song that needs a *large* one is usually not
@@ -499,6 +507,49 @@ going anywhere.
 it opens at −9.9 LUFS short-term, above the −11.1 that `el-rey-leon` climbs to
 at its ending, so a ballad entered harder than the climax before it. Nothing
 about the song itself was wrong.
+
+## The measurements are written down
+
+    ./infra/run.sh loudness            # the whole repertoire
+    ./infra/run.sh loudness tequila    # same, with one song marked
+    ./infra/run.sh loudness --force    # ignore the cache
+
+Measuring every finished render is a full decode of every file, slow enough
+that nobody does it in passing -- and then nobody knows the levels at all, and
+a `gain_db` gets picked by ear against a neighbour nobody measured. So the
+figures live in `loudness.json` at the repo root, one entry per song with its
+integrated LUFS, true peak, LRA and duration.
+
+**The cache key is the hash of the audio stream, not of the file and not the
+commit.** Each is wrong in its own way:
+
+| key | fails how |
+|---|---|
+| whole-file hash | a cursor moved 5 ms re-renders the picture and nothing else; the measurement would be thrown away on every pass of settling a song by ear |
+| git commit | too eager *and* too lax: a README commit discards all thirteen figures, while the renders are gitignored, so two checkouts at one revision can hold different audio and the commit cannot tell |
+| audio stream hash | moves for a new source, a new `trim_seconds` or a new `gain_db`; stands still for a new cursor, a new row plan, a new score |
+
+The hash covers exactly what `ebur128` reads, which is the property a cache key
+needs. `commit` is recorded beside each figure anyway, as provenance: it says
+which revision of the recipe produced the number, so a level can be read
+against the decision behind it. It is never consulted to decide whether to
+measure again.
+
+The report prints loudest first with the step to the next song, because the step
+is the number a player in a playlist actually hears -- see **Two different
+volume knobs** for which knob a bad step calls for.
+
+Read `LRA` next to `LUFS` or the table misleads. `tequila` measures as the
+loudest song in the repertoire at -11.0 LUFS with an LRA of 3.9: a riff that
+never lets up, so its average sits against its own ceiling. `el-rey-leon`
+averages -14.9 with an LRA of 10.8, and its ending climbs far above that
+average. The one that measures quieter is the one that arrives harder, which is
+why a junction complaint is never answered by the integrated figure alone.
+
+A true peak above 0 dBTP is a defect rather than a preference, and the table is
+where it shows up: `besame-mucho` at +1.6 and `tequila` at +0.5 clip on any
+lossy transcode, including the one YouTube performs on upload. No playback
+volume fixes it.
 
 ## The mirror
 

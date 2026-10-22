@@ -1,0 +1,136 @@
+{
+  "_": "EBU R128 of each finished render; re-measured when a song's audio_sha256 changes. See infra/playalong/loudness.py",
+  "schema": 1,
+  "songs": {
+    "ave-maria": {
+      "audio_sha256": "549ce3ed1637d0d0344cbf6ed85c42b221760f097266d090c7e3c57bcd3e641d",
+      "commit": "0b005cb",
+      "duration_s": 172.59,
+      "file": "ave-maria/ave-maria_playalong.mkv",
+      "gain_db": 0.0,
+      "integrated_lufs": -17.9,
+      "lra": 10.2,
+      "true_peak_dbtp": -0.6
+    },
+    "besame-mucho": {
+      "audio_sha256": "bb089f0287d6529dcf6a267f930d7b3671e5735f8eae3f9ba63182c1a7740b3f",
+      "commit": "0b005cb",
+      "duration_s": 248.94,
+      "file": "besame-mucho/besame-mucho_playalong.mkv",
+      "gain_db": 0.0,
+      "integrated_lufs": -11.5,
+      "lra": 1.6,
+      "true_peak_dbtp": 1.6
+    },
+    "cant-help-falling-in-love": {
+      "audio_sha256": "e5145d8b865650b5d4354739c22d1852e7c6056de8e430f15e64ec361d6c60f7",
+      "commit": "0b005cb",
+      "duration_s": 207.03,
+      "file": "cant-help-falling-in-love/cant-help-falling-in-love_playalong.mkv",
+      "gain_db": -3.0,
+      "integrated_lufs": -12.1,
+      "lra": 3.6,
+      "true_peak_dbtp": -1.5
+    },
+    "close-to-you": {
+      "audio_sha256": "bddda4ed892e8ddf72b9e682b1e4e8fefdc85e69d834cd866896b9d6a555670b",
+      "commit": "0b005cb",
+      "duration_s": 247.23,
+      "file": "close-to-you/close-to-you_playalong.mkv",
+      "gain_db": -2.0,
+      "integrated_lufs": -12.1,
+      "lra": 4.5,
+      "true_peak_dbtp": -0.7
+    },
+    "el-rey-leon": {
+      "audio_sha256": "3bdd77f99712591f05cc4c9d7e2eb89a07952251d8f0d0b3a87b6e8d2d4a465a",
+      "commit": "0b005cb",
+      "duration_s": 251.97,
+      "file": "el-rey-leon/el-rey-leon_playalong.mkv",
+      "gain_db": 0.0,
+      "integrated_lufs": -14.9,
+      "lra": 10.8,
+      "true_peak_dbtp": -0.8
+    },
+    "how-deep-is-your-love": {
+      "audio_sha256": "452a55425a3790acb5df3dec130d8d7301c93e7d77a3a07e218bc5598ab9b4b5",
+      "commit": "0b005cb",
+      "duration_s": 184.63,
+      "file": "how-deep-is-your-love/how-deep-is-your-love_playalong.mkv",
+      "gain_db": 0.0,
+      "integrated_lufs": -16.3,
+      "lra": 6.4,
+      "true_peak_dbtp": -0.5
+    },
+    "my-heart-will-go-on": {
+      "audio_sha256": "27576cd5cf767cd74674bc69789c0da65861f1e6d3c98b876262abe9a76814fa",
+      "commit": "0b005cb",
+      "duration_s": 300.68,
+      "file": "my-heart-will-go-on/my-heart-will-go-on_playalong.mkv",
+      "gain_db": 0.0,
+      "integrated_lufs": -14.9,
+      "lra": 7.8,
+      "true_peak_dbtp": -1.9
+    },
+    "my-way": {
+      "audio_sha256": "3b06d7785722e623ade4f9294dfcfdeea566238444c9b9cd2566f3186c51d9a7",
+      "commit": "0b005cb",
+      "duration_s": 288.72,
+      "file": "my-way/my-way_playalong.mkv",
+      "gain_db": 0.0,
+      "integrated_lufs": -14.3,
+      "lra": 7.2,
+      "true_peak_dbtp": 0.0
+    },
+    "reloj": {
+      "audio_sha256": "7cf6460628261770e3bc820a46ccf8e4401b5273741566f6f065c88d7548af7a",
+      "commit": "0b005cb",
+      "duration_s": 211.03,
+      "file": "reloj/reloj_playalong.mkv",
+      "gain_db": 0.0,
+      "integrated_lufs": -15.7,
+      "lra": 2.5,
+      "true_peak_dbtp": 0.3
+    },
+    "silent-night": {
+      "audio_sha256": "9b6c944daafbb97dcda81c2ba0e1e7910cd504f97b0fbd45dcc3e461a32844d5",
+      "commit": "0b005cb",
+      "duration_s": 163.86,
+      "file": "silent-night/silent-night_playalong.mkv",
+      "gain_db": 0.0,
+      "integrated_lufs": -18.9,
+      "lra": 12.1,
+      "true_peak_dbtp": -0.3
+    },
+    "solamente-una-vez": {
+      "audio_sha256": "21d3a15484837dbc0182c479775ce9dc5d32a254db29a4070386f61df8639c8e",
+      "commit": "0b005cb",
+      "duration_s": 159.77,
+      "file": "solamente-una-vez/solamente-una-vez_playalong.mkv",
+      "gain_db": -5.0,
+      "integrated_lufs": -12.1,
+      "lra": 3.8,
+      "true_peak_dbtp": -3.0
+    },
+    "tequila": {
+      "audio_sha256": "16099832894018f1d80f4982ceecd87b43e49ec53caec9533e62a4a8f9b44e6d",
+      "commit": "0b005cb",
+      "duration_s": 159.13,
+      "file": "tequila/tequila_playalong.mkv",
+      "gain_db": 0.0,
+      "integrated_lufs": -11.0,
+      "lra": 3.9,
+      "true_peak_dbtp": 0.5
+    },
+    "what-a-wonderful-world": {
+      "audio_sha256": "989e0bec4f2d9fadd6ff4426e95e190a6c597d5aa340e4c57c72f3aa8c538d70",
+      "commit": "0b005cb",
+      "duration_s": 323.89,
+      "file": "what-a-wonderful-world/what-a-wonderful-world_playalong.mkv",
+      "gain_db": 0.0,
+      "integrated_lufs": -14.0,
+      "lra": 6.5,
+      "true_peak_dbtp": 0.6
+    }
+  }
+}
