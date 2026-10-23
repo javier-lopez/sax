@@ -88,7 +88,8 @@ scaffold leaves an `_tempo` note explaining the sweep it chose.
 | `score_source` | where the `.mxl` was exported from. **Read by no code** — it is there so the next person can find the master |
 | `score`, `output` | the `.mxl` in, the video out. **Omit `score`** and the song is passed through instead of engraved: its `source` is already a finished play-along, so `fetch` + `render` only wrap it in the card and the `lead_seconds` / `tail_seconds` silence. `align`, `preview` and `clip` refuse to run |
 | `trim_seconds` | seconds to drop off the FRONT of the recording, for a source that opens with something that is not the music. Belongs here and not in the mirror; see **Cutting the front off** |
-| `gain_db` | a plain trim in dB, and nothing else. For a song that only sits wrong *next to its neighbours* in a playlist; see **Two different volume knobs** |
+| `gain_db` | a plain trim in dB, and nothing else. For a song that only sits wrong *next to its neighbours* in a playlist; see **Three different volume knobs** |
+| `low_shelf_db`, `low_shelf_hz` | a shelf cut under `low_shelf_hz` (default 200), in dB. For a song whose energy piles up below the melody, so it measures loud and sounds quiet; see **The table can also say the opposite of what the ear says** |
 | `loudness` | opt-in level shaping; see **Loudness** |
 
 ### `layout`
@@ -475,17 +476,18 @@ comparing where the first sound falls in `build/audio.*` against where it falls
 in the finished video — the difference must equal `lead_seconds` exactly.
 Checking `start_time` instead proves nothing: Matroska reports 0 either way.
 
-## Two different volume knobs
+## Three different volume knobs
 
-`gain_db` and `loudness` both change how loud a song is, and reaching for the
-wrong one does damage that is hard to hear as damage.
+`gain_db`, `loudness` and `low_shelf_db` all change how loud a song is, and
+reaching for the wrong one does damage that is hard to hear as damage.
 
-| | `gain_db` | `loudness` |
-|---|---|---|
-| what it does | multiplies the whole track by one constant | re-levels by a rolling median, lifts the waits, applies the score's `sections`, shifts to `target`, limits to `peak` |
-| what it preserves | everything: the arc, the accents, the dynamics | the level; not the shape |
-| works on | any song, engraved or passed through | engraved only — `mix.level` needs a score and a sync map |
-| cost | one opus generation at mux time | a full decode, analysis and re-encode |
+| | `gain_db` | `loudness` | `low_shelf_db` |
+|---|---|---|---|
+| answers | this song sits at the wrong level | this song fights the player | this song's level is in the wrong *place* |
+| what it does | multiplies the whole track by one constant | re-levels by a rolling median, lifts the waits, applies the score's `sections`, shifts to `target`, limits to `peak` | shelves everything under `low_shelf_hz` (default 200) |
+| what it preserves | everything: the arc, the accents, the dynamics | the level; not the shape | the arc; not the tone |
+| works on | any song, engraved or passed through | engraved only — `mix.level` needs a score and a sync map | any song |
+| cost | one opus generation at mux time | a full decode, analysis and re-encode | shares `gain_db`'s generation |
 
 Reach for **`loudness`** when the recording fights the player: a whispered
 intro that street noise swallows, a chorus that arrives as a jolt, a section
@@ -536,20 +538,55 @@ against the decision behind it. It is never consulted to decide whether to
 measure again.
 
 The report prints loudest first with the step to the next song, because the step
-is the number a player in a playlist actually hears -- see **Two different
+is the number a player in a playlist actually hears -- see **Three different
 volume knobs** for which knob a bad step calls for.
 
-Read `LRA` next to `LUFS` or the table misleads. `tequila` measures as the
-loudest song in the repertoire at -11.0 LUFS with an LRA of 3.9: a riff that
-never lets up, so its average sits against its own ceiling. `el-rey-leon`
-averages -14.9 with an LRA of 10.8, and its ending climbs far above that
-average. The one that measures quieter is the one that arrives harder, which is
-why a junction complaint is never answered by the integrated figure alone.
+Read `LRA` next to `LUFS` or the table misleads. `el-rey-leon` averages -14.9
+with an LRA of 10.8, and its ending climbs far above that average, while a song
+that never lets up has its average sitting against its own ceiling. The one that
+measures quieter is the one that arrives harder, which is why a junction
+complaint is never answered by the integrated figure alone.
 
 A true peak above 0 dBTP is a defect rather than a preference, and the table is
-where it shows up: `besame-mucho` at +1.6 and `tequila` at +0.5 clip on any
-lossy transcode, including the one YouTube performs on upload. No playback
-volume fixes it.
+where it shows up: `besame-mucho` sits at +1.6 and clips on any lossy transcode,
+including the one YouTube performs on upload. No playback volume fixes it.
+
+### The table can also say the opposite of what the ear says
+
+`tequila` is the case worth knowing, because it looked like a `gain_db` problem
+and was not one. It measured **-11.0 LUFS, the loudest of the thirteen**, and
+the player reported it as the *quietest* song in the playlist. Both were true.
+
+A spectrum of the render against five songs nobody complained about found the
+cause in one column — share of energy from 250 Hz to 4 kHz, where the melody
+lives and where the ear judges loudness:
+
+| song | LUFS | low <250 Hz | mid | true peak |
+|---|---|---|---|---|
+| `tequila`, as uploaded | -11.0 | -0.4 | **-10.5** | +0.5 |
+| `what-a-wonderful-world` | -14.0 | -7.2 | -0.9 | +0.6 |
+| `besame-mucho` | -11.5 | -3.3 | -3.0 | +1.6 |
+| `el-rey-leon` | -14.9 | -0.9 | -7.7 | -0.8 |
+
+Three steps turn that into a quiet song. The track piles its energy under
+200 Hz; the meter counts that energy, so it measures as the loudest thing in
+the repertoire; YouTube normalises **downward only**, sees -11.0 against its
+~-14 target and attenuates the whole song by 3 dB -- so the bass spends the
+loudness budget and the midrange, already the thin part, pays the bill.
+
+Which is why `gain_db` cannot fix this and `low_shelf_db` exists. On a service
+that only normalises downward, every dB of gain added is a dB taken straight
+back; the balance is the only thing that moves. With `low_shelf_db: -6.0` and
+`gain_db: -1.0` the song measures -14.6, exactly the repertoire's median, its
+true peak comes off the rail at -0.8, and the midrange share rises from -10.5
+to -6.7 before YouTube stops attenuating it at all -- about 7 dB more of the
+song where the ear is listening.
+
+The LRA moved too, from 3.9 to 5.1, with no compressor anywhere in the chain:
+the constant bass had been a floor that lifted every moment equally and flattened
+the distance between the song's soft and loud. That rise is the evidence the
+diagnosis found a mechanism rather than a correlation — cutting something
+harmless would have lowered the LUFS and done nothing else.
 
 ## The mirror
 

@@ -7,6 +7,10 @@
   "output": "tequila_playalong.mkv",
   "_trim": "the first 6.7s are the channel's logo sting, not the music",
   "trim_seconds": 6.7,
+  "_tone": "energy piles up under 200 Hz: it measured -11.0 LUFS, the loudest in the repertoire, and sounded the quietest",
+  "low_shelf_db": -6.0,
+  "low_shelf_hz": 200.0,
+  "gain_db": -1.0,
   "layout": {
     "measures_per_row": 4,
     "countdown_label": "ESPERA",

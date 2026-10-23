@@ -563,6 +563,9 @@ def passthrough(song, src, dest, log=print):
     inputs = (["-ss", f"{song.trim_seconds:.3f}"] if song.trim_seconds
               else []) + ["-i", src]
     afilt = [f"adelay={round(lead * 1000)}:all=1"]
+    # balance before level: the shelf changes how loud the song measures, so a
+    # gain chosen against the measurement has to be applied after it
+    afilt += song.tone_filters
     if song.gain_db:
         afilt.append(f"volume={song.gain_db:+.2f}dB")
     afilt.append(f"apad=pad_dur={tail:.3f}")
@@ -634,12 +637,14 @@ def render_video(song, score, sync, audio_path, audio_len, log=print,
     # a clip carries the trim too: it is judged by playing along with it, and a
     # clip at a level the finished video will not have is judged against the
     # wrong thing
-    gain = [f"volume={song.gain_db:+.2f}dB"] if song.gain_db else []
+    # balance before level; see Song.tone_filters
+    shaping = song.tone_filters + (
+        [f"volume={song.gain_db:+.2f}dB"] if song.gain_db else [])
     if span:
         t_from, t_to = span
         out = song.output
         audio_args = ["-ss", str(t_from), "-t", str(t_to - t_from), "-i", audio_path]
-        codec = (["-af", ",".join(gain)] if gain else []) \
+        codec = (["-af", ",".join(shaping)] if shaping else []) \
             + ["-c:a", "libopus", "-b:a", "160k"]
     else:
         # A negative tail cuts instead of padding, for a recording that ends on
@@ -659,7 +664,8 @@ def render_video(song, score, sync, audio_path, audio_len, log=print,
         # readable two ways. One generation of opus is the price, and it buys
         # a head that is silent by construction. Levels are untouched: this is
         # a transcode, not a re-level.
-        af = ([f"adelay={round(lead * 1000)}:all=1"] if lead else []) + gain
+        af = ([f"adelay={round(lead * 1000)}:all=1"] if lead else []) \
+            + shaping
         codec = (["-af", ",".join(af), "-c:a", "libopus", "-b:a", "192k"]
                  if af else ["-c:a", "copy"])
     if os.path.exists(out):
@@ -694,6 +700,8 @@ def render_video(song, score, sync, audio_path, audio_len, log=print,
         if src_codec != out_codec:
             raise RuntimeError(f"audio was re-encoded: {src_codec} -> {out_codec}")
         why = ([f"{lead:.0f}s of real silence at the head"] if lead else []) \
+            + ([f"a {song.low_shelf_db:+.1f} dB shelf under "
+                f"{song.low_shelf_hz:g} Hz"] if song.low_shelf_db else []) \
             + ([f"a {song.gain_db:+.1f} dB trim"] if song.gain_db else [])
         how = (f"audio {out_codec}, re-encoded once to carry "
                + " and ".join(why) if why

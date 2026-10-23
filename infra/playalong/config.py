@@ -81,6 +81,18 @@ class Song:
         # number is supposed to arrive loud -- so the knob that only moves the
         # level has to exist separately from the one that reshapes the song.
         self.gain_db = float(data.get("gain_db", 0.0))
+        # A shelf cut below low_shelf_hz, in dB. Deliberately not a third
+        # loudness knob: gain_db and loudness both answer "this song sits at
+        # the wrong level", and this one answers "this song's level is in the
+        # wrong place". A backing track whose energy piles up under 200 Hz
+        # measures loud on a meter that counts that energy and sounds quiet to
+        # an ear that does not, and a platform normalising by the meter then
+        # attenuates the whole song -- so the midrange, which was already the
+        # thin part, pays for the bass. No amount of gain_db fixes it: on a
+        # service that only normalises downward, every dB added is a dB taken
+        # straight back. Moving the balance is the only thing that works.
+        self.low_shelf_db = float(data.get("low_shelf_db", 0.0))
+        self.low_shelf_hz = float(data.get("low_shelf_hz", 200.0))
         # Seconds to drop off the front of the recording. A backing track often
         # opens with something that is not the music -- a channel sting, a
         # spoken introduction, a logo. The cut belongs here and not in the
@@ -108,6 +120,20 @@ class Song:
         """
         path = os.path.join(os.path.dirname(self.root), "cookies.txt")
         return path if os.path.exists(path) else None
+
+    @property
+    def tone_filters(self):
+        """The shelf as ffmpeg filters, empty when the song does not ask.
+
+        A shelf rather than a highpass on purpose, and measured rather than
+        assumed: on `tequila` a 150 Hz highpass raises true peak from +0.5 to
+        +1.4 dBTP, because a steep cut phase-shifts the transients into a
+        bigger overshoot. The shelf lowers it to +0.1 while moving the same
+        amount of balance.
+        """
+        if not self.low_shelf_db:
+            return []
+        return [f"bass=g={self.low_shelf_db:+.2f}:f={self.low_shelf_hz:g}"]
 
     @property
     def engraves(self):

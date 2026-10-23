@@ -113,14 +113,14 @@
       "true_peak_dbtp": -3.0
     },
     "tequila": {
-      "audio_sha256": "16099832894018f1d80f4982ceecd87b43e49ec53caec9533e62a4a8f9b44e6d",
-      "commit": "0b005cb",
+      "audio_sha256": "22a5b57241a6770b215c3780cdb1f98baa74a65b3c160a2b7c6189dc2d891011",
+      "commit": "24a8353",
       "duration_s": 159.13,
       "file": "tequila/tequila_playalong.mkv",
-      "gain_db": 0.0,
-      "integrated_lufs": -11.0,
-      "lra": 3.9,
-      "true_peak_dbtp": 0.5
+      "gain_db": -1.0,
+      "integrated_lufs": -14.6,
+      "lra": 5.1,
+      "true_peak_dbtp": -0.8
     },
     "what-a-wonderful-world": {
       "audio_sha256": "989e0bec4f2d9fadd6ff4426e95e190a6c597d5aa340e4c57c72f3aa8c538d70",
