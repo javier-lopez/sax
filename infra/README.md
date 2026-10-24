@@ -341,6 +341,21 @@ file with an external check.
 The repo does not agree with itself on the lead, which is expected: each was
 settled by ear on a different render.
 
+**The sign in this table does not tell you which way the bar sits on screen.**
+Read it as a correction, not as a position. Two numbers move the cursor and both
+are settled by ear -- `align.offset` shifts the map against the audio, and
+`cursor_lag_seconds` shifts the drawn bar against the map -- so whatever one did
+not absorb, the other did. The three negative rows all sit on a large positive
+offset (+1.18 to +1.35 s, against `tequila`'s +0.70 and `reloj`'s 0), and a
+negative lag there is trimming a little off a delay the offset already
+introduced, not pushing the bar ahead of the sound. Watched end to end, every
+finished video has the cursor slightly **behind**, which is the project's
+preference and what the player reports seeing.
+
+The practical rule: a lag is only comparable to another song's when both songs'
+offsets are comparable, and they are not. The authority on where the bar sits is
+the render, so settle it by watching one -- never by reading this column.
+
 | song | `cursor_lag_seconds` |
 |---|---|
 | `cant-help-falling-in-love` | -0.22 |
