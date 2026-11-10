@@ -1,0 +1,37 @@
+{
+  "title": "Hallelujah",
+  "credit": "Leonard Cohen",
+  "instrument": "YDS-120: S11 (soprano, si bemol)",
+  "source": "https://github.com/javier-lopez/sax/releases/download/mirror/hallelujah.webm",
+  "score": "hallelujah.mxl",
+  "output": "hallelujah_playalong.mkv",
+  "layout": {
+    "measures_per_row": 3,
+    "countdown_label": "ESPERA",
+    "countdown_min_bars": 2,
+    "tail_seconds": 13.0,
+    "_rows": "12/8 packs twelve eighth slots to a bar; four to a row put 37 noteheads in one, two left them adrift",
+    "lead_seconds": 6.0,
+    "_silence": "source brings 6.2s of its own at the head and 2.1s at the tail; these land it near the 12s/15.5s the other songs settled at"
+  },
+  "align": {
+    "quarter_dur": [
+      0.667
+    ],
+    "t0": [
+      6.32
+    ],
+    "head_bars": [
+      0
+    ],
+    "transpose": [
+      10
+    ],
+    "stretch": [],
+    "offset": 1.0,
+    "anchors": [],
+    "entry_window": null,
+    "lock": null,
+    "_offset": "by ear; the entry alternates quarter and eighth, so one note is 0.667s"
+  }
+}

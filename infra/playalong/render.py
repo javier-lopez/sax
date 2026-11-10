@@ -659,7 +659,14 @@ def render_video(song, score, sync, audio_path, audio_len, log=print,
         # readable two ways. One generation of opus is the price, and it buys
         # a head that is silent by construction. Levels are untouched: this is
         # a transcode, not a re-level.
-        af = ([f"adelay={round(lead * 1000)}:all=1"] if lead else []) + gain
+        # The tail has to be real samples for the same reason the lead does.
+        # Padding only the video leaves a stream that stops before the picture,
+        # and what that gap MEANS is then up to the transcoder: silence, a
+        # truncated video, or a complaint. mix.level pads its own output, which
+        # is why a song with `loudness` never showed this and the four without
+        # it did -- the pad belonged to the chain, not to the leveller.
+        af = ([f"adelay={round(lead * 1000)}:all=1"] if lead else []) + gain \
+            + ([f"apad=pad_dur={tail:.3f}"] if tail > 0 else [])
         codec = (["-af", ",".join(af), "-c:a", "libopus", "-b:a", "192k"]
                  if af else ["-c:a", "copy"])
     if os.path.exists(out):
@@ -694,6 +701,7 @@ def render_video(song, score, sync, audio_path, audio_len, log=print,
         if src_codec != out_codec:
             raise RuntimeError(f"audio was re-encoded: {src_codec} -> {out_codec}")
         why = ([f"{lead:.0f}s of real silence at the head"] if lead else []) \
+            + ([f"{tail:.0f}s of it at the tail"] if tail > 0 else []) \
             + ([f"a {song.gain_db:+.1f} dB trim"] if song.gain_db else [])
         how = (f"audio {out_codec}, re-encoded once to carry "
                + " and ".join(why) if why

@@ -490,6 +490,34 @@ comparing where the first sound falls in `build/audio.*` against where it falls
 in the finished video — the difference must equal `lead_seconds` exactly.
 Checking `start_time` instead proves nothing: Matroska reports 0 either way.
 
+### And so is a tail
+
+The same argument applies at the other end, and for a long time the code only
+honoured it at one. The engraved path sized the *picture* to
+`lead + audio_len + tail` and left the audio ending where the recording did, so
+four songs shipped with a stream that stopped short of their own last frame:
+
+| song | `tail_seconds` | video minus audio |
+|---|---|---|
+| `cant-help-falling-in-love` | 8.0 | -7.96 s |
+| `reloj` | 8.0 | -7.96 s |
+| `how-deep-is-your-love` | 5.0 | -4.98 s |
+| `el-rey-leon` | 10.0 | **+0.02 s** |
+
+The gap is `tail_seconds` to the centisecond, and the one song that escaped is
+the only engraved one carrying `loudness`: `mix.level` takes `tail` as an
+argument and pads its own output. So the pad was living in the leveller rather
+than in the chain, and every song that did not opt into levelling went without
+it. `apad` now sits in the engraved chain beside `adelay`, where it belongs.
+
+Why it counts as a defect and not a quirk: a hole at the end is readable two
+ways exactly like a hole at the front. A player fills it with silence by
+convention, and a transcoder may instead truncate the picture to match the
+stream — which would cut the ending this pad exists to protect. The check is
+the one in the table: compare the last audio packet's `pts_time` against the
+last video packet's; `ffprobe -show_entries stream=duration` answers `N/A` on
+Matroska and proves nothing.
+
 ## Two different volume knobs
 
 `gain_db` and `loudness` both change how loud a song is, and reaching for the

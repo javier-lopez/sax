@@ -52,6 +52,16 @@
       "lra": 10.8,
       "true_peak_dbtp": -0.8
     },
+    "hallelujah": {
+      "audio_sha256": "9c47c2eb514df00588f8737bca44ca6c17163067ee56e65c593f81592404835a",
+      "commit": "2e8b22c",
+      "duration_s": 218.6,
+      "file": "hallelujah/hallelujah_playalong.mkv",
+      "gain_db": 0.0,
+      "integrated_lufs": -20.0,
+      "lra": 3.8,
+      "true_peak_dbtp": -3.7
+    },
     "how-deep-is-your-love": {
       "audio_sha256": "452a55425a3790acb5df3dec130d8d7301c93e7d77a3a07e218bc5598ab9b4b5",
       "commit": "0b005cb",
