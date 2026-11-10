@@ -53,8 +53,8 @@
       "true_peak_dbtp": -0.8
     },
     "hallelujah": {
-      "audio_sha256": "9c47c2eb514df00588f8737bca44ca6c17163067ee56e65c593f81592404835a",
-      "commit": "2e8b22c",
+      "audio_sha256": "1701af36839a60ebb7edf5f8eb5416f1b43f42a3826ffa63f5e2868121926b5a",
+      "commit": "718cdfb",
       "duration_s": 218.6,
       "file": "hallelujah/hallelujah_playalong.mkv",
       "gain_db": 0.0,
